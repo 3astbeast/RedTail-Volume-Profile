@@ -17,7 +17,7 @@
 </p>
 
 <p align="center">
-  <img src="[[https://raw.githubusercontent.com/3astbeast/RedTail-Market-Structure/refs/heads/main/Screenshot%202026-03-03%20084922.png](https://raw.githubusercontent.com/3astbeast/RedTail-Volume-Profile/refs/heads/main/Screenshot%202026-03-03%20123202.png)](https://raw.githubusercontent.com/3astbeast/RedTail-Volume-Profile/refs/heads/main/Screenshot%202026-03-03%20123202.png)" width="800" alt="RedTail Market Structure Screenshot"/>
+  <img src="https://raw.githubusercontent.com/3astbeast/RedTail-Volume-Profile/refs/heads/main/Screenshot%202026-03-03%20123202.png" width="800" alt="RedTail Market Structure Screenshot"/>
 </p>
 ---
 
