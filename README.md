@@ -128,22 +128,6 @@ Automatically detects breakout moves from consolidation zones and builds a volum
 
 ---
 
-## DOM Visualization (Domdicator)
-
-Live order book depth visualization rendered directly on the chart. Shows bid/ask depth as horizontal bars at each price level with volume text labels.
-
-- Real-time and historical order tracking
-- Dynamic threshold calculation for outlier detection
-- Configurable width, gap, and right extension
-- Volume text labels with min/max font size scaling
-- Live vs. historical opacity controls
-- Bid/Ask/Text/Outlier colors
-- Minimum orders threshold to begin rendering
-
-> **Note:** DOM settings are currently hidden from the GUI and configured via NinjaScript properties.
-
----
-
 ## Rendering & Visual Options
 
 **Volume Display Types:** Standard, Bullish, Bearish, or Both (split delta coloring)
