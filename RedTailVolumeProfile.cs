@@ -23,7 +23,7 @@ using NinjaTrader.NinjaScript.DrawingTools;
 
 //This code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
 //Created by RedTail Indicators - @_hawkeye_13
-//Version: v2.4.0 - Added Adaptive Rendering with smoothing and auto-sizing
+// RedTail Volume Profile
 public enum VolumeTypeEnum
 {
     Standard,
@@ -74,9 +74,9 @@ public enum ProfileRenderQuality
     Adaptive
 }
 
-namespace NinjaTrader.NinjaScript.Indicators
+namespace NinjaTrader.NinjaScript.Indicators.RedTail
 {
-    public class RedTailVolumeProfile_V2 : Indicator
+    public class RedTailVolumeProfile : Indicator
     {
         #region Variables
 		
@@ -603,8 +603,8 @@ private MarketState previousState = MarketState.InConsolidation;
         {
             if (State == State.SetDefaults)
             {
-                Description = @"RedTail Volume Profile v3.0 - Tick-Based Candle Profiles, HTF Accuracy, Alert Overhaul, GUI Reorganization";
-                Name = "RedTail\\RedTail Volume Profile";
+                Description = @"RedTail Volume Profile v3.1 - GUI Reorganization: 21 groups → 16, shared line styles, workflow-based layout";
+                Name = "RedTail Volume Profile";
                 Calculate = Calculate.OnEachTick;
                 IsOverlay = true;
                 DisplayInDataBox = false;
@@ -868,6 +868,27 @@ MoveVALinesOpacity = 80;
                 RemoveWeeklyAfterTouchCount = 0;
                 ShowTouchCountInLabels = false;
 				BritishDateFormat = false;
+
+                // Shared Line Style: Previous Day Levels
+                PdUseIndividualStyles = false;
+                PdSharedColor = Brushes.Orange;
+                PdSharedLineStyle = DashStyleHelper.Solid;
+                PdSharedThickness = 2;
+                PdSharedOpacity = 80;
+                
+                // Shared Line Style: Previous Week Levels
+                PwUseIndividualStyles = false;
+                PwSharedColor = Brushes.Gold;
+                PwSharedLineStyle = DashStyleHelper.Dash;
+                PwSharedThickness = 2;
+                PwSharedOpacity = 80;
+                
+                // Shared Line Style: Overnight Levels
+                OnUseIndividualStyles = false;
+                OnSharedColor = Brushes.Yellow;
+                OnSharedLineStyle = DashStyleHelper.Solid;
+                OnSharedThickness = 2;
+                OnSharedOpacity = 85;
 
                 // Display Settings
                 PreviousDayLineWidth = 0;
@@ -7389,93 +7410,116 @@ private void DrawOvernightLevels()
 
         #endregion
 	
+
+        // ============================================
+        // SHARED STYLE HELPER METHODS
+        // ============================================
+        
+        // Previous Day - effective getters
+        private Brush GetPdColor(Brush individualColor) { return PdUseIndividualStyles ? individualColor : PdSharedColor; }
+        private DashStyleHelper GetPdLineStyle(DashStyleHelper individualStyle) { return PdUseIndividualStyles ? individualStyle : PdSharedLineStyle; }
+        private int GetPdThickness(int individualThickness) { return PdUseIndividualStyles ? individualThickness : PdSharedThickness; }
+        private int GetPdOpacity(int individualOpacity) { return PdUseIndividualStyles ? individualOpacity : PdSharedOpacity; }
+        
+        // Previous Week - effective getters
+        private Brush GetPwColor(Brush individualColor) { return PwUseIndividualStyles ? individualColor : PwSharedColor; }
+        private DashStyleHelper GetPwLineStyle(DashStyleHelper individualStyle) { return PwUseIndividualStyles ? individualStyle : PwSharedLineStyle; }
+        private int GetPwThickness(int individualThickness) { return PwUseIndividualStyles ? individualThickness : PwSharedThickness; }
+        private int GetPwOpacity(int individualOpacity) { return PwUseIndividualStyles ? individualOpacity : PwSharedOpacity; }
+        
+        // Overnight - effective getters
+        private Brush GetOnColor(Brush individualColor) { return OnUseIndividualStyles ? individualColor : OnSharedColor; }
+        private DashStyleHelper GetOnLineStyle(DashStyleHelper individualStyle) { return OnUseIndividualStyles ? individualStyle : OnSharedLineStyle; }
+        private int GetOnThickness(int individualThickness) { return OnUseIndividualStyles ? individualThickness : OnSharedThickness; }
+        private int GetOnOpacity(int individualOpacity) { return OnUseIndividualStyles ? individualOpacity : OnSharedOpacity; }
+
 #region Properties
 
         [NinjaScriptProperty]
-        [Display(Name = "Profile Mode", Description = "Volume Profile calculation mode", Order = 1, GroupName = "01. Profile - Mode")]
+        [Display(Name = "Profile Mode", Description = "Volume Profile calculation mode", Order = 1, GroupName = "01. Profile Mode")]
         public ProfileModeEnum ProfileMode { get; set; }
 
         [NinjaScriptProperty]
-        [Display(Name = "Profile Alignment", Description = "Dock profile to left/right side of chart, or anchor to session open", Order = 2, GroupName = "01. Profile - Mode")]
+        [Display(Name = "Profile Alignment", Description = "Dock profile to left/right side of chart, or anchor to session open", Order = 2, GroupName = "01. Profile Mode")]
         public ProfileAlignment Alignment { get; set; }
 
         [NinjaScriptProperty]
         [Range(1, 52)]
-        [Display(Name = "Weeks Lookback", Description = "Number of weeks to include (Weeks mode)", Order = 4, GroupName = "01. Profile - Mode")]
+        [Display(Name = "Weeks Lookback", Description = "Number of weeks to include (Weeks mode)", Order = 4, GroupName = "01. Profile Mode")]
         public int WeeksLookback { get; set; }
 		
 		[NinjaScriptProperty]
         [Range(1, 50)]
-        [Display(Name = "Sessions Lookback", Description = "Number of sessions to include (Session/Anchored mode)", Order = 3, GroupName = "01. Profile - Mode")]
+        [Display(Name = "Sessions Lookback", Description = "Number of sessions to include (Session/Anchored mode)", Order = 3, GroupName = "01. Profile Mode")]
         public int SessionsLookback { get; set; }
 
         [NinjaScriptProperty]
         [Range(1, 24)]
-        [Display(Name = "Months Lookback", Description = "Number of months to include (Months mode)", Order = 5, GroupName = "01. Profile - Mode")]
+        [Display(Name = "Months Lookback", Description = "Number of months to include (Months mode)", Order = 5, GroupName = "01. Profile Mode")]
         public int MonthsLookback { get; set; }
         
         [NinjaScriptProperty]
-        [Display(Name = "Composite Range Type", Description = "Type of date range for Composite mode", Order = 10, GroupName = "01. Profile - Mode")]
+        [Display(Name = "Composite Range Type", Description = "Type of date range for Composite mode", Order = 10, GroupName = "01. Profile Mode")]
         public CompositeDateRangeType CompositeRangeType { get; set; }
 
         [NinjaScriptProperty]
         [Range(1, 365)]
-        [Display(Name = "Composite Days Back", Description = "Number of days to include (Composite - Days Back)", Order = 11, GroupName = "01. Profile - Mode")]
+        [Display(Name = "Composite Days Back", Description = "Number of days to include (Composite - Days Back)", Order = 11, GroupName = "01. Profile Mode")]
         public int CompositeDaysBack { get; set; }
 
         [NinjaScriptProperty]
         [Range(1, 52)]
-        [Display(Name = "Composite Weeks Back", Description = "Number of weeks to include (Composite - Weeks Back)", Order = 12, GroupName = "01. Profile - Mode")]
+        [Display(Name = "Composite Weeks Back", Description = "Number of weeks to include (Composite - Weeks Back)", Order = 12, GroupName = "01. Profile Mode")]
         public int CompositeWeeksBack { get; set; }
 
         [NinjaScriptProperty]
         [Range(1, 24)]
-        [Display(Name = "Composite Months Back", Description = "Number of months to include (Composite - Months Back)", Order = 13, GroupName = "01. Profile - Mode")]
+        [Display(Name = "Composite Months Back", Description = "Number of months to include (Composite - Months Back)", Order = 13, GroupName = "01. Profile Mode")]
         public int CompositeMonthsBack { get; set; }
 
         [NinjaScriptProperty]
-        [Display(Name = "Composite Start Date", Description = "Start date for Custom Date Range", Order = 14, GroupName = "01. Profile - Mode")]
+        [Display(Name = "Composite Start Date", Description = "Start date for Custom Date Range", Order = 14, GroupName = "01. Profile Mode")]
         public DateTime CompositeCustomStartDate { get; set; }
 
         [NinjaScriptProperty]
-        [Display(Name = "Composite End Date", Description = "End date for Custom Date Range", Order = 15, GroupName = "01. Profile - Mode")]
+        [Display(Name = "Composite End Date", Description = "End date for Custom Date Range", Order = 15, GroupName = "01. Profile Mode")]
         public DateTime CompositeCustomEndDate { get; set; }
 		
 		[NinjaScriptProperty]
-        [Display(Name = "Use Custom Session Times", Description = "Override default session with custom times (Session mode only, ignored in Anchored mode)", Order = 6, GroupName = "01. Profile - Mode")]
+        [Display(Name = "Use Custom Session Times", Description = "Override default session with custom times (Session mode only, ignored in Anchored mode)", Order = 6, GroupName = "01. Profile Mode")]
         public bool UseCustomSessionTimes { get; set; }
 
         [NinjaScriptProperty]
         [Range(0, 2359)]
-        [Display(Name = "Session Start Time", Description = "Custom session start time in 24-hour format (HHMM). Example: 0930 = 9:30 AM", Order = 7, GroupName = "01. Profile - Mode")]
+        [Display(Name = "Session Start Time", Description = "Custom session start time in 24-hour format (HHMM). Example: 0930 = 9:30 AM", Order = 7, GroupName = "01. Profile Mode")]
         public int SessionStartTime { get; set; }
 
         [NinjaScriptProperty]
         [Range(0, 2359)]
-        [Display(Name = "Session End Time", Description = "Custom session end time in 24-hour format (HHMM). Example: 1600 = 4:00 PM", Order = 8, GroupName = "01. Profile - Mode")]
+        [Display(Name = "Session End Time", Description = "Custom session end time in 24-hour format (HHMM). Example: 1600 = 4:00 PM", Order = 8, GroupName = "01. Profile Mode")]
         public int SessionEndTime { get; set; }
 
         [NinjaScriptProperty]
         [Range(10, 1000)]
-        [Display(Name = "Number of Volume Bars", Description = "Price levels in profile", Order = 1, GroupName = "02. Profile - Volume Bars")]
+        [Display(Name = "Number of Volume Bars", Description = "Price levels in profile", Order = 1, GroupName = "02. Profile Appearance")]
         public int NumberOfVolumeBars { get; set; }
 
         [NinjaScriptProperty]
         [Range(1, 10)]
-        [Display(Name = "Bar Thickness", Description = "Thickness of volume bars", Order = 2, GroupName = "02. Profile - Volume Bars")]
+        [Display(Name = "Bar Thickness", Description = "Thickness of volume bars", Order = 2, GroupName = "02. Profile Appearance")]
         public int BarThickness { get; set; }
 
         [NinjaScriptProperty]
         [Range(50, 1000)]
-        [Display(Name = "Profile Width", Description = "Max width of profile in pixels (ignored in Anchored mode)", Order = 3, GroupName = "02. Profile - Volume Bars")]
+        [Display(Name = "Profile Width", Description = "Max width of profile in pixels (ignored in Anchored mode)", Order = 3, GroupName = "02. Profile Appearance")]
         public int ProfileWidth { get; set; }
 
         [NinjaScriptProperty]
-        [Display(Name = "Volume Type", Description = "Type of volume to include", Order = 4, GroupName = "02. Profile - Volume Bars")]
+        [Display(Name = "Volume Type", Description = "Type of volume to include", Order = 4, GroupName = "02. Profile Appearance")]
         public VolumeTypeEnum VolumeType { get; set; }
 
         [XmlIgnore]
-        [Display(Name = "Bar Color", Description = "Color of volume bars", Order = 6, GroupName = "02. Profile - Volume Bars")]
+        [Display(Name = "Bar Color", Description = "Color of volume bars", Order = 6, GroupName = "02. Profile Appearance")]
         public Brush BarColor { get; set; }
 
         [Browsable(false)]
@@ -7486,7 +7530,7 @@ private void DrawOvernightLevels()
         }
 
         [XmlIgnore]
-        [Display(Name = "Bullish Bar Color", Description = "Color of bullish volume bars", Order = 8, GroupName = "02. Profile - Volume Bars")]
+        [Display(Name = "Bullish Bar Color", Description = "Color of bullish volume bars", Order = 8, GroupName = "02. Profile Appearance")]
         public Brush BullishBarColor { get; set; }
 
         [Browsable(false)]
@@ -7497,7 +7541,7 @@ private void DrawOvernightLevels()
         }
 
         [XmlIgnore]
-        [Display(Name = "Bearish Bar Color", Description = "Color of bearish volume bars", Order = 9, GroupName = "02. Profile - Volume Bars")]
+        [Display(Name = "Bearish Bar Color", Description = "Color of bearish volume bars", Order = 9, GroupName = "02. Profile Appearance")]
         public Brush BearishBarColor { get; set; }
 
         [Browsable(false)]
@@ -7509,20 +7553,20 @@ private void DrawOvernightLevels()
 
         [NinjaScriptProperty]
         [Range(0, 100)]
-        [Display(Name = "Bar Opacity", Description = "Opacity 0-100", Order = 10, GroupName = "02. Profile - Volume Bars")]
+        [Display(Name = "Bar Opacity", Description = "Opacity 0-100", Order = 10, GroupName = "02. Profile Appearance")]
         public int BarOpacity { get; set; }
 
         [NinjaScriptProperty]
-        [Display(Name = "Display Point of Control", Description = "Show PoC line", Order = 1, GroupName = "07. Profile - POC")]
+        [Display(Name = "Display Point of Control", Description = "Show PoC line", Order = 1, GroupName = "03. POC & Value Area")]
         public bool DisplayPoC { get; set; }
 
         [NinjaScriptProperty]
         [Range(1, 10)]
-        [Display(Name = "PoC Line Thickness", Description = "PoC line width", Order = 2, GroupName = "07. Profile - POC")]
+        [Display(Name = "PoC Line Thickness", Description = "PoC line width", Order = 2, GroupName = "03. POC & Value Area")]
         public int PoCLineThickness { get; set; }
 
         [XmlIgnore]
-        [Display(Name = "PoC Line Color", Description = "PoC color", Order = 3, GroupName = "07. Profile - POC")]
+        [Display(Name = "PoC Line Color", Description = "PoC color", Order = 3, GroupName = "03. POC & Value Area")]
         public Brush PoCLineColor { get; set; }
 
         [Browsable(false)]
@@ -7533,29 +7577,29 @@ private void DrawOvernightLevels()
         }
 
         [NinjaScriptProperty]
-        [Display(Name = "PoC Line Style", Description = "Line style for PoC", Order = 4, GroupName = "07. Profile - POC")]
+        [Display(Name = "PoC Line Style", Description = "Line style for PoC", Order = 4, GroupName = "03. POC & Value Area")]
         public DashStyleHelper PoCLineStyle { get; set; }
 
         [NinjaScriptProperty]
         [Range(0, 100)]
-        [Display(Name = "PoC Line Opacity", Description = "Opacity of PoC line (0-100)", Order = 5, GroupName = "07. Profile - POC")]
+        [Display(Name = "PoC Line Opacity", Description = "Opacity of PoC line (0-100)", Order = 5, GroupName = "03. POC & Value Area")]
         public int PoCLineOpacity { get; set; }
 
         [NinjaScriptProperty]
-        [Display(Name = "Extend PoC Line", Description = "Extend PoC line to left edge of chart (ignored in Anchored mode)", Order = 6, GroupName = "07. Profile - POC")]
+        [Display(Name = "Extend PoC Line", Description = "Extend PoC line to left edge of chart (ignored in Anchored mode)", Order = 6, GroupName = "03. POC & Value Area")]
         public bool ExtendPoCLine { get; set; }
 
         [NinjaScriptProperty]
-        [Display(Name = "Display Value Area", Description = "Show Value Area", Order = 1, GroupName = "08. Profile - Value Area")]
+        [Display(Name = "Display Value Area", Description = "Show Value Area", Order = 10, GroupName = "03. POC & Value Area")]
         public bool DisplayValueArea { get; set; }
 
         [NinjaScriptProperty]
         [Range(5, 95)]
-        [Display(Name = "Value Area Percentage", Description = "VA percentage", Order = 2, GroupName = "08. Profile - Value Area")]
+        [Display(Name = "Value Area Percentage", Description = "VA percentage", Order = 11, GroupName = "03. POC & Value Area")]
         public int ValueAreaPercentage { get; set; }
 
         [XmlIgnore]
-        [Display(Name = "Value Area Bar Color", Description = "VA bar color", Order = 3, GroupName = "08. Profile - Value Area")]
+        [Display(Name = "Value Area Bar Color", Description = "VA bar color", Order = 12, GroupName = "03. POC & Value Area")]
         public Brush ValueAreaBarColor { get; set; }
 
         [Browsable(false)]
@@ -7566,11 +7610,11 @@ private void DrawOvernightLevels()
         }
 
         [NinjaScriptProperty]
-        [Display(Name = "Display Value Area Lines", Description = "Show VA boundary lines", Order = 4, GroupName = "08. Profile - Value Area")]
+        [Display(Name = "Display Value Area Lines", Description = "Show VA boundary lines", Order = 13, GroupName = "03. POC & Value Area")]
         public bool DisplayValueAreaLines { get; set; }
 
         [XmlIgnore]
-        [Display(Name = "VA Lines Color", Description = "Color of VAH/VAL lines", Order = 5, GroupName = "08. Profile - Value Area")]
+        [Display(Name = "VA Lines Color", Description = "Color of VAH/VAL lines", Order = 14, GroupName = "03. POC & Value Area")]
         public Brush ValueAreaLinesColor { get; set; }
 
         [Browsable(false)]
@@ -7582,37 +7626,37 @@ private void DrawOvernightLevels()
 
         [NinjaScriptProperty]
         [Range(1, 10)]
-        [Display(Name = "VA Lines Thickness", Description = "Thickness of VAH/VAL lines", Order = 6, GroupName = "08. Profile - Value Area")]
+        [Display(Name = "VA Lines Thickness", Description = "Thickness of VAH/VAL lines", Order = 15, GroupName = "03. POC & Value Area")]
         public int ValueAreaLinesThickness { get; set; }
 
         [NinjaScriptProperty]
-        [Display(Name = "VA Lines Style", Description = "Line style for VAH/VAL", Order = 7, GroupName = "08. Profile - Value Area")]
+        [Display(Name = "VA Lines Style", Description = "Line style for VAH/VAL", Order = 16, GroupName = "03. POC & Value Area")]
         public DashStyleHelper ValueAreaLineStyle { get; set; }
 
         [NinjaScriptProperty]
         [Range(0, 100)]
-        [Display(Name = "VA Lines Opacity", Description = "Opacity of VAH/VAL lines (0-100)", Order = 8, GroupName = "08. Profile - Value Area")]
+        [Display(Name = "VA Lines Opacity", Description = "Opacity of VAH/VAL lines (0-100)", Order = 17, GroupName = "03. POC & Value Area")]
         public int ValueAreaLinesOpacity { get; set; }
 
         [NinjaScriptProperty]
-        [Display(Name = "Extend VA Lines", Description = "Extend VAH/VAL lines to left edge of chart", Order = 9, GroupName = "08. Profile - Value Area")]
+        [Display(Name = "Extend VA Lines", Description = "Extend VAH/VAL lines to left edge of chart", Order = 18, GroupName = "03. POC & Value Area")]
         public bool ExtendValueAreaLines { get; set; }
 
         [Range(1, 100)]
-        [Display(Name = "Update Frequency", Description = "Update every N bars (historical)", Order = 1, GroupName = "21. Performance")]
+        [Display(Name = "Update Frequency", Description = "Update every N bars (historical)", Order = 1, GroupName = "16. Performance")]
         public int UpdateFrequency { get; set; }
 
         [NinjaScriptProperty]
-        [Display(Name = "Enable Debug Prints", Description = "Output debug messages to the NinjaTrader Output window", Order = 10, GroupName = "21. Performance")]
+        [Display(Name = "Enable Debug Prints", Description = "Output debug messages to the NinjaTrader Output window", Order = 10, GroupName = "16. Performance")]
         public bool EnableDebugPrints { get; set; }
 
         // Previous Day POC
         [NinjaScriptProperty]
-        [Display(Name = "Display Previous Day POC", Description = "Show previous day's Point of Control", Order = 1, GroupName = "10. Levels - Previous Day")]
+        [Display(Name = "Display Previous Day POC", Description = "Show previous day's Point of Control", Order = 1, GroupName = "08. Previous Day Levels")]
         public bool DisplayPreviousDayPOC { get; set; }
 
         [XmlIgnore]
-        [Display(Name = "pdPOC Color", Description = "Color for pdPOC line", Order = 2, GroupName = "10. Levels - Previous Day")]
+        [Display(Name = "pdPOC Color", Description = "Color for pdPOC line", Order = 2, GroupName = "08. Previous Day Levels")]
         public Brush PdPOCColor { get; set; }
 
         [Browsable(false)]
@@ -7623,26 +7667,26 @@ private void DrawOvernightLevels()
         }
 
         [NinjaScriptProperty]
-        [Display(Name = "pdPOC Line Style", Description = "Line style for pdPOC", Order = 3, GroupName = "10. Levels - Previous Day")]
+        [Display(Name = "pdPOC Line Style", Description = "Line style for pdPOC", Order = 3, GroupName = "08. Previous Day Levels")]
         public DashStyleHelper PdPOCLineStyle { get; set; }
 
         [NinjaScriptProperty]
         [Range(1, 10)]
-        [Display(Name = "pdPOC Thickness", Description = "Line thickness for pdPOC", Order = 4, GroupName = "10. Levels - Previous Day")]
+        [Display(Name = "pdPOC Thickness", Description = "Line thickness for pdPOC", Order = 4, GroupName = "08. Previous Day Levels")]
         public int PdPOCThickness { get; set; }
 
         [NinjaScriptProperty]
         [Range(0, 100)]
-        [Display(Name = "pdPOC Opacity", Description = "Opacity for pdPOC line (0-100)", Order = 5, GroupName = "10. Levels - Previous Day")]
+        [Display(Name = "pdPOC Opacity", Description = "Opacity for pdPOC line (0-100)", Order = 5, GroupName = "08. Previous Day Levels")]
         public int PdPOCOpacity { get; set; }
 
         // Previous Day VAH
         [NinjaScriptProperty]
-        [Display(Name = "Display Previous Day VAH", Description = "Show previous day's Value Area High", Order = 6, GroupName = "10. Levels - Previous Day")]
+        [Display(Name = "Display Previous Day VAH", Description = "Show previous day's Value Area High", Order = 6, GroupName = "08. Previous Day Levels")]
         public bool DisplayPreviousDayVAH { get; set; }
 
         [XmlIgnore]
-        [Display(Name = "pdVAH Color", Description = "Color for pdVAH line", Order = 7, GroupName = "10. Levels - Previous Day")]
+        [Display(Name = "pdVAH Color", Description = "Color for pdVAH line", Order = 7, GroupName = "08. Previous Day Levels")]
         public Brush PdVAHColor { get; set; }
 
         [Browsable(false)]
@@ -7653,26 +7697,26 @@ private void DrawOvernightLevels()
         }
 
         [NinjaScriptProperty]
-        [Display(Name = "pdVAH Line Style", Description = "Line style for pdVAH", Order = 8, GroupName = "10. Levels - Previous Day")]
+        [Display(Name = "pdVAH Line Style", Description = "Line style for pdVAH", Order = 8, GroupName = "08. Previous Day Levels")]
         public DashStyleHelper PdVAHLineStyle { get; set; }
 
         [NinjaScriptProperty]
         [Range(1, 10)]
-        [Display(Name = "pdVAH Thickness", Description = "Line thickness for pdVAH", Order = 9, GroupName = "10. Levels - Previous Day")]
+        [Display(Name = "pdVAH Thickness", Description = "Line thickness for pdVAH", Order = 9, GroupName = "08. Previous Day Levels")]
         public int PdVAHThickness { get; set; }
 
         [NinjaScriptProperty]
         [Range(0, 100)]
-        [Display(Name = "pdVAH Opacity", Description = "Opacity for pdVAH line (0-100)", Order = 10, GroupName = "10. Levels - Previous Day")]
+        [Display(Name = "pdVAH Opacity", Description = "Opacity for pdVAH line (0-100)", Order = 10, GroupName = "08. Previous Day Levels")]
         public int PdVAHOpacity { get; set; }
 
         // Previous Day VAL
         [NinjaScriptProperty]
-        [Display(Name = "Display Previous Day VAL", Description = "Show previous day's Value Area Low", Order = 11, GroupName = "10. Levels - Previous Day")]
+        [Display(Name = "Display Previous Day VAL", Description = "Show previous day's Value Area Low", Order = 11, GroupName = "08. Previous Day Levels")]
         public bool DisplayPreviousDayVAL { get; set; }
 
         [XmlIgnore]
-        [Display(Name = "pdVAL Color", Description = "Color for pdVAL line", Order = 12, GroupName = "10. Levels - Previous Day")]
+        [Display(Name = "pdVAL Color", Description = "Color for pdVAL line", Order = 12, GroupName = "08. Previous Day Levels")]
         public Brush PdVALColor { get; set; }
 
         [Browsable(false)]
@@ -7683,26 +7727,26 @@ private void DrawOvernightLevels()
         }
 
         [NinjaScriptProperty]
-        [Display(Name = "pdVAL Line Style", Description = "Line style for pdVAL", Order = 13, GroupName = "10. Levels - Previous Day")]
+        [Display(Name = "pdVAL Line Style", Description = "Line style for pdVAL", Order = 13, GroupName = "08. Previous Day Levels")]
         public DashStyleHelper PdVALLineStyle { get; set; }
 
         [NinjaScriptProperty]
         [Range(1, 10)]
-        [Display(Name = "pdVAL Thickness", Description = "Line thickness for pdVAL", Order = 14, GroupName = "10. Levels - Previous Day")]
+        [Display(Name = "pdVAL Thickness", Description = "Line thickness for pdVAL", Order = 14, GroupName = "08. Previous Day Levels")]
         public int PdVALThickness { get; set; }
 
         [NinjaScriptProperty]
         [Range(0, 100)]
-        [Display(Name = "pdVAL Opacity", Description = "Opacity for pdVAL line (0-100)", Order = 15, GroupName = "10. Levels - Previous Day")]
+        [Display(Name = "pdVAL Opacity", Description = "Opacity for pdVAL line (0-100)", Order = 15, GroupName = "08. Previous Day Levels")]
         public int PdVALOpacity { get; set; }
         
         // Previous Day High
         [NinjaScriptProperty]
-        [Display(Name = "Display Previous Day High", Order = 16, GroupName = "10. Levels - Previous Day")]
+        [Display(Name = "Display Previous Day High", Order = 16, GroupName = "08. Previous Day Levels")]
         public bool DisplayPreviousDayHigh { get; set; }
         
         [XmlIgnore]
-        [Display(Name = "PDH Color", Order = 17, GroupName = "10. Levels - Previous Day")]
+        [Display(Name = "PDH Color", Order = 17, GroupName = "08. Previous Day Levels")]
         public Brush PdHighColor { get; set; }
         
         [Browsable(false)]
@@ -7713,26 +7757,26 @@ private void DrawOvernightLevels()
         }
         
         [NinjaScriptProperty]
-        [Display(Name = "PDH Line Style", Order = 18, GroupName = "10. Levels - Previous Day")]
+        [Display(Name = "PDH Line Style", Order = 18, GroupName = "08. Previous Day Levels")]
         public DashStyleHelper PdHighLineStyle { get; set; }
         
         [NinjaScriptProperty]
         [Range(1, 10)]
-        [Display(Name = "PDH Thickness", Order = 19, GroupName = "10. Levels - Previous Day")]
+        [Display(Name = "PDH Thickness", Order = 19, GroupName = "08. Previous Day Levels")]
         public int PdHighThickness { get; set; }
         
         [NinjaScriptProperty]
         [Range(0, 100)]
-        [Display(Name = "PDH Opacity", Order = 20, GroupName = "10. Levels - Previous Day")]
+        [Display(Name = "PDH Opacity", Order = 20, GroupName = "08. Previous Day Levels")]
         public int PdHighOpacity { get; set; }
         
         // Previous Day Low
         [NinjaScriptProperty]
-        [Display(Name = "Display Previous Day Low", Order = 21, GroupName = "10. Levels - Previous Day")]
+        [Display(Name = "Display Previous Day Low", Order = 21, GroupName = "08. Previous Day Levels")]
         public bool DisplayPreviousDayLow { get; set; }
         
         [XmlIgnore]
-        [Display(Name = "PDL Color", Order = 22, GroupName = "10. Levels - Previous Day")]
+        [Display(Name = "PDL Color", Order = 22, GroupName = "08. Previous Day Levels")]
         public Brush PdLowColor { get; set; }
         
         [Browsable(false)]
@@ -7743,30 +7787,30 @@ private void DrawOvernightLevels()
         }
         
         [NinjaScriptProperty]
-        [Display(Name = "PDL Line Style", Order = 23, GroupName = "10. Levels - Previous Day")]
+        [Display(Name = "PDL Line Style", Order = 23, GroupName = "08. Previous Day Levels")]
         public DashStyleHelper PdLowLineStyle { get; set; }
         
         [NinjaScriptProperty]
         [Range(1, 10)]
-        [Display(Name = "PDL Thickness", Order = 24, GroupName = "10. Levels - Previous Day")]
+        [Display(Name = "PDL Thickness", Order = 24, GroupName = "08. Previous Day Levels")]
         public int PdLowThickness { get; set; }
         
         [NinjaScriptProperty]
         [Range(0, 100)]
-        [Display(Name = "PDL Opacity", Order = 25, GroupName = "10. Levels - Previous Day")]
+        [Display(Name = "PDL Opacity", Order = 25, GroupName = "08. Previous Day Levels")]
         public int PdLowOpacity { get; set; }
         
         // ============================================
-        // GROUP 06a: PREVIOUS WEEK LEVELS
+        // PREVIOUS WEEK LEVELS (Group 09)
         // ============================================
         
         // Previous Week POC
         [NinjaScriptProperty]
-        [Display(Name = "Display Previous Week POC", Description = "Show previous week's Point of Control (Sun 6PM - Fri 5PM)", Order = 1, GroupName = "11. Levels - Previous Week")]
+        [Display(Name = "Display Previous Week POC", Description = "Show previous week's Point of Control (Sun 6PM - Fri 5PM)", Order = 1, GroupName = "09. Previous Week Levels")]
         public bool DisplayPreviousWeekPOC { get; set; }
         
         [XmlIgnore]
-        [Display(Name = "pwPOC Color", Description = "Color for pwPOC line", Order = 2, GroupName = "11. Levels - Previous Week")]
+        [Display(Name = "pwPOC Color", Description = "Color for pwPOC line", Order = 2, GroupName = "09. Previous Week Levels")]
         public Brush PwPOCColor { get; set; }
         
         [Browsable(false)]
@@ -7777,26 +7821,26 @@ private void DrawOvernightLevels()
         }
         
         [NinjaScriptProperty]
-        [Display(Name = "pwPOC Line Style", Description = "Line style for pwPOC", Order = 3, GroupName = "11. Levels - Previous Week")]
+        [Display(Name = "pwPOC Line Style", Description = "Line style for pwPOC", Order = 3, GroupName = "09. Previous Week Levels")]
         public DashStyleHelper PwPOCLineStyle { get; set; }
         
         [NinjaScriptProperty]
         [Range(1, 10)]
-        [Display(Name = "pwPOC Thickness", Description = "Line thickness for pwPOC", Order = 4, GroupName = "11. Levels - Previous Week")]
+        [Display(Name = "pwPOC Thickness", Description = "Line thickness for pwPOC", Order = 4, GroupName = "09. Previous Week Levels")]
         public int PwPOCThickness { get; set; }
         
         [NinjaScriptProperty]
         [Range(0, 100)]
-        [Display(Name = "pwPOC Opacity", Description = "Opacity for pwPOC line (0-100)", Order = 5, GroupName = "11. Levels - Previous Week")]
+        [Display(Name = "pwPOC Opacity", Description = "Opacity for pwPOC line (0-100)", Order = 5, GroupName = "09. Previous Week Levels")]
         public int PwPOCOpacity { get; set; }
         
         // Previous Week VAH
         [NinjaScriptProperty]
-        [Display(Name = "Display Previous Week VAH", Description = "Show previous week's Value Area High", Order = 6, GroupName = "11. Levels - Previous Week")]
+        [Display(Name = "Display Previous Week VAH", Description = "Show previous week's Value Area High", Order = 6, GroupName = "09. Previous Week Levels")]
         public bool DisplayPreviousWeekVAH { get; set; }
         
         [XmlIgnore]
-        [Display(Name = "pwVAH Color", Description = "Color for pwVAH line", Order = 7, GroupName = "11. Levels - Previous Week")]
+        [Display(Name = "pwVAH Color", Description = "Color for pwVAH line", Order = 7, GroupName = "09. Previous Week Levels")]
         public Brush PwVAHColor { get; set; }
         
         [Browsable(false)]
@@ -7807,26 +7851,26 @@ private void DrawOvernightLevels()
         }
         
         [NinjaScriptProperty]
-        [Display(Name = "pwVAH Line Style", Description = "Line style for pwVAH", Order = 8, GroupName = "11. Levels - Previous Week")]
+        [Display(Name = "pwVAH Line Style", Description = "Line style for pwVAH", Order = 8, GroupName = "09. Previous Week Levels")]
         public DashStyleHelper PwVAHLineStyle { get; set; }
         
         [NinjaScriptProperty]
         [Range(1, 10)]
-        [Display(Name = "pwVAH Thickness", Description = "Line thickness for pwVAH", Order = 9, GroupName = "11. Levels - Previous Week")]
+        [Display(Name = "pwVAH Thickness", Description = "Line thickness for pwVAH", Order = 9, GroupName = "09. Previous Week Levels")]
         public int PwVAHThickness { get; set; }
         
         [NinjaScriptProperty]
         [Range(0, 100)]
-        [Display(Name = "pwVAH Opacity", Description = "Opacity for pwVAH line (0-100)", Order = 10, GroupName = "11. Levels - Previous Week")]
+        [Display(Name = "pwVAH Opacity", Description = "Opacity for pwVAH line (0-100)", Order = 10, GroupName = "09. Previous Week Levels")]
         public int PwVAHOpacity { get; set; }
         
         // Previous Week VAL
         [NinjaScriptProperty]
-        [Display(Name = "Display Previous Week VAL", Description = "Show previous week's Value Area Low", Order = 11, GroupName = "11. Levels - Previous Week")]
+        [Display(Name = "Display Previous Week VAL", Description = "Show previous week's Value Area Low", Order = 11, GroupName = "09. Previous Week Levels")]
         public bool DisplayPreviousWeekVAL { get; set; }
         
         [XmlIgnore]
-        [Display(Name = "pwVAL Color", Description = "Color for pwVAL line", Order = 12, GroupName = "11. Levels - Previous Week")]
+        [Display(Name = "pwVAL Color", Description = "Color for pwVAL line", Order = 12, GroupName = "09. Previous Week Levels")]
         public Brush PwVALColor { get; set; }
         
         [Browsable(false)]
@@ -7837,26 +7881,26 @@ private void DrawOvernightLevels()
         }
         
         [NinjaScriptProperty]
-        [Display(Name = "pwVAL Line Style", Description = "Line style for pwVAL", Order = 13, GroupName = "11. Levels - Previous Week")]
+        [Display(Name = "pwVAL Line Style", Description = "Line style for pwVAL", Order = 13, GroupName = "09. Previous Week Levels")]
         public DashStyleHelper PwVALLineStyle { get; set; }
         
         [NinjaScriptProperty]
         [Range(1, 10)]
-        [Display(Name = "pwVAL Thickness", Description = "Line thickness for pwVAL", Order = 14, GroupName = "11. Levels - Previous Week")]
+        [Display(Name = "pwVAL Thickness", Description = "Line thickness for pwVAL", Order = 14, GroupName = "09. Previous Week Levels")]
         public int PwVALThickness { get; set; }
         
         [NinjaScriptProperty]
         [Range(0, 100)]
-        [Display(Name = "pwVAL Opacity", Description = "Opacity for pwVAL line (0-100)", Order = 15, GroupName = "11. Levels - Previous Week")]
+        [Display(Name = "pwVAL Opacity", Description = "Opacity for pwVAL line (0-100)", Order = 15, GroupName = "09. Previous Week Levels")]
         public int PwVALOpacity { get; set; }
 
         // Previous Week High
         [NinjaScriptProperty]
-        [Display(Name = "Display Previous Week High", Description = "Show previous week's high", Order = 16, GroupName = "11. Levels - Previous Week")]
+        [Display(Name = "Display Previous Week High", Description = "Show previous week's high", Order = 16, GroupName = "09. Previous Week Levels")]
         public bool DisplayPreviousWeekHigh { get; set; }
 
         [XmlIgnore]
-        [Display(Name = "pwHigh Color", Description = "Color for pwHigh line", Order = 17, GroupName = "11. Levels - Previous Week")]
+        [Display(Name = "pwHigh Color", Description = "Color for pwHigh line", Order = 17, GroupName = "09. Previous Week Levels")]
         public Brush PwHighColor { get; set; }
 
         [Browsable(false)]
@@ -7867,26 +7911,26 @@ private void DrawOvernightLevels()
         }
 
         [NinjaScriptProperty]
-        [Display(Name = "pwHigh Line Style", Description = "Line style for pwHigh", Order = 18, GroupName = "11. Levels - Previous Week")]
+        [Display(Name = "pwHigh Line Style", Description = "Line style for pwHigh", Order = 18, GroupName = "09. Previous Week Levels")]
         public DashStyleHelper PwHighLineStyle { get; set; }
 
         [NinjaScriptProperty]
         [Range(1, 10)]
-        [Display(Name = "pwHigh Thickness", Description = "Line thickness for pwHigh", Order = 19, GroupName = "11. Levels - Previous Week")]
+        [Display(Name = "pwHigh Thickness", Description = "Line thickness for pwHigh", Order = 19, GroupName = "09. Previous Week Levels")]
         public int PwHighThickness { get; set; }
 
         [NinjaScriptProperty]
         [Range(0, 100)]
-        [Display(Name = "pwHigh Opacity", Description = "Opacity for pwHigh line (0-100)", Order = 20, GroupName = "11. Levels - Previous Week")]
+        [Display(Name = "pwHigh Opacity", Description = "Opacity for pwHigh line (0-100)", Order = 20, GroupName = "09. Previous Week Levels")]
         public int PwHighOpacity { get; set; }
 
         // Previous Week Low
         [NinjaScriptProperty]
-        [Display(Name = "Display Previous Week Low", Description = "Show previous week's low", Order = 21, GroupName = "11. Levels - Previous Week")]
+        [Display(Name = "Display Previous Week Low", Description = "Show previous week's low", Order = 21, GroupName = "09. Previous Week Levels")]
         public bool DisplayPreviousWeekLow { get; set; }
 
         [XmlIgnore]
-        [Display(Name = "pwLow Color", Description = "Color for pwLow line", Order = 22, GroupName = "11. Levels - Previous Week")]
+        [Display(Name = "pwLow Color", Description = "Color for pwLow line", Order = 22, GroupName = "09. Previous Week Levels")]
         public Brush PwLowColor { get; set; }
 
         [Browsable(false)]
@@ -7897,30 +7941,30 @@ private void DrawOvernightLevels()
         }
 
         [NinjaScriptProperty]
-        [Display(Name = "pwLow Line Style", Description = "Line style for pwLow", Order = 23, GroupName = "11. Levels - Previous Week")]
+        [Display(Name = "pwLow Line Style", Description = "Line style for pwLow", Order = 23, GroupName = "09. Previous Week Levels")]
         public DashStyleHelper PwLowLineStyle { get; set; }
 
         [NinjaScriptProperty]
         [Range(1, 10)]
-        [Display(Name = "pwLow Thickness", Description = "Line thickness for pwLow", Order = 24, GroupName = "11. Levels - Previous Week")]
+        [Display(Name = "pwLow Thickness", Description = "Line thickness for pwLow", Order = 24, GroupName = "09. Previous Week Levels")]
         public int PwLowThickness { get; set; }
 
         [NinjaScriptProperty]
         [Range(0, 100)]
-        [Display(Name = "pwLow Opacity", Description = "Opacity for pwLow line (0-100)", Order = 25, GroupName = "11. Levels - Previous Week")]
+        [Display(Name = "pwLow Opacity", Description = "Opacity for pwLow line (0-100)", Order = 25, GroupName = "09. Previous Week Levels")]
         public int PwLowOpacity { get; set; }
 		
 		// ============================================
-// GROUP 07: OVERNIGHT LEVELS (NEW)
+// OVERNIGHT LEVELS (Group 10)
 // ============================================
 
 // Overnight POC
 [NinjaScriptProperty]
-[Display(Name = "Display Overnight POC", Description = "Show overnight session's Point of Control (6 PM - 8:30 AM)", Order = 1, GroupName = "12. Levels - Overnight")]
+[Display(Name = "Display Overnight POC", Description = "Show overnight session's Point of Control (6 PM - 8:30 AM)", Order = 1, GroupName = "10. Overnight Levels")]
 public bool DisplayOvernightPOC { get; set; }
 
 [XmlIgnore]
-[Display(Name = "oPOC Color", Description = "Color for oPOC line", Order = 2, GroupName = "12. Levels - Overnight")]
+[Display(Name = "oPOC Color", Description = "Color for oPOC line", Order = 2, GroupName = "10. Overnight Levels")]
 public Brush OvernightPOCColor { get; set; }
 
 [Browsable(false)]
@@ -7931,26 +7975,26 @@ public string OvernightPOCColorSerialize
 }
 
 [NinjaScriptProperty]
-[Display(Name = "oPOC Line Style", Description = "Line style for oPOC", Order = 3, GroupName = "12. Levels - Overnight")]
+[Display(Name = "oPOC Line Style", Description = "Line style for oPOC", Order = 3, GroupName = "10. Overnight Levels")]
 public DashStyleHelper OvernightPOCLineStyle { get; set; }
 
 [NinjaScriptProperty]
 [Range(1, 10)]
-[Display(Name = "oPOC Thickness", Description = "Line thickness for oPOC", Order = 4, GroupName = "12. Levels - Overnight")]
+[Display(Name = "oPOC Thickness", Description = "Line thickness for oPOC", Order = 4, GroupName = "10. Overnight Levels")]
 public int OvernightPOCThickness { get; set; }
 
 [NinjaScriptProperty]
 [Range(0, 100)]
-[Display(Name = "oPOC Opacity", Description = "Opacity for oPOC line (0-100)", Order = 5, GroupName = "12. Levels - Overnight")]
+[Display(Name = "oPOC Opacity", Description = "Opacity for oPOC line (0-100)", Order = 5, GroupName = "10. Overnight Levels")]
 public int OvernightPOCOpacity { get; set; }
 
 // Overnight VAH
 [NinjaScriptProperty]
-[Display(Name = "Display Overnight VAH", Description = "Show overnight session's Value Area High (6 PM - 8:30 AM)", Order = 6, GroupName = "12. Levels - Overnight")]
+[Display(Name = "Display Overnight VAH", Description = "Show overnight session's Value Area High (6 PM - 8:30 AM)", Order = 6, GroupName = "10. Overnight Levels")]
 public bool DisplayOvernightVAH { get; set; }
 
 [XmlIgnore]
-[Display(Name = "oVAH Color", Description = "Color for oVAH line", Order = 7, GroupName = "12. Levels - Overnight")]
+[Display(Name = "oVAH Color", Description = "Color for oVAH line", Order = 7, GroupName = "10. Overnight Levels")]
 public Brush OvernightVAHColor { get; set; }
 
 [Browsable(false)]
@@ -7961,26 +8005,26 @@ public string OvernightVAHColorSerialize
 }
 
 [NinjaScriptProperty]
-[Display(Name = "oVAH Line Style", Description = "Line style for oVAH", Order = 8, GroupName = "12. Levels - Overnight")]
+[Display(Name = "oVAH Line Style", Description = "Line style for oVAH", Order = 8, GroupName = "10. Overnight Levels")]
 public DashStyleHelper OvernightVAHLineStyle { get; set; }
 
 [NinjaScriptProperty]
 [Range(1, 10)]
-[Display(Name = "oVAH Thickness", Description = "Line thickness for oVAH", Order = 9, GroupName = "12. Levels - Overnight")]
+[Display(Name = "oVAH Thickness", Description = "Line thickness for oVAH", Order = 9, GroupName = "10. Overnight Levels")]
 public int OvernightVAHThickness { get; set; }
 
 [NinjaScriptProperty]
 [Range(0, 100)]
-[Display(Name = "oVAH Opacity", Description = "Opacity for oVAH line (0-100)", Order = 10, GroupName = "12. Levels - Overnight")]
+[Display(Name = "oVAH Opacity", Description = "Opacity for oVAH line (0-100)", Order = 10, GroupName = "10. Overnight Levels")]
 public int OvernightVAHOpacity { get; set; }
 
 // Overnight VAL
 [NinjaScriptProperty]
-[Display(Name = "Display Overnight VAL", Description = "Show overnight session's Value Area Low (6 PM - 8:30 AM)", Order = 11, GroupName = "12. Levels - Overnight")]
+[Display(Name = "Display Overnight VAL", Description = "Show overnight session's Value Area Low (6 PM - 8:30 AM)", Order = 11, GroupName = "10. Overnight Levels")]
 public bool DisplayOvernightVAL { get; set; }
 
 [XmlIgnore]
-[Display(Name = "oVAL Color", Description = "Color for oVAL line", Order = 12, GroupName = "12. Levels - Overnight")]
+[Display(Name = "oVAL Color", Description = "Color for oVAL line", Order = 12, GroupName = "10. Overnight Levels")]
 public Brush OvernightVALColor { get; set; }
 
 [Browsable(false)]
@@ -7991,26 +8035,26 @@ public string OvernightVALColorSerialize
 }
 
 [NinjaScriptProperty]
-[Display(Name = "oVAL Line Style", Description = "Line style for oVAL", Order = 13, GroupName = "12. Levels - Overnight")]
+[Display(Name = "oVAL Line Style", Description = "Line style for oVAL", Order = 13, GroupName = "10. Overnight Levels")]
 public DashStyleHelper OvernightVALLineStyle { get; set; }
 
 [NinjaScriptProperty]
 [Range(1, 10)]
-[Display(Name = "oVAL Thickness", Description = "Line thickness for oVAL", Order = 14, GroupName = "12. Levels - Overnight")]
+[Display(Name = "oVAL Thickness", Description = "Line thickness for oVAL", Order = 14, GroupName = "10. Overnight Levels")]
 public int OvernightVALThickness { get; set; }
 
 [NinjaScriptProperty]
 [Range(0, 100)]
-[Display(Name = "oVAL Opacity", Description = "Opacity for oVAL line (0-100)", Order = 15, GroupName = "12. Levels - Overnight")]
+[Display(Name = "oVAL Opacity", Description = "Opacity for oVAL line (0-100)", Order = 15, GroupName = "10. Overnight Levels")]
 public int OvernightVALOpacity { get; set; }
 
 // Overnight High
 [NinjaScriptProperty]
-[Display(Name = "Display Overnight High", Description = "Show overnight session's High", Order = 16, GroupName = "12. Levels - Overnight")]
+[Display(Name = "Display Overnight High", Description = "Show overnight session's High", Order = 16, GroupName = "10. Overnight Levels")]
 public bool DisplayOvernightHigh { get; set; }
 
 [XmlIgnore]
-[Display(Name = "ONH Color", Description = "Color for ONH line", Order = 17, GroupName = "12. Levels - Overnight")]
+[Display(Name = "ONH Color", Description = "Color for ONH line", Order = 17, GroupName = "10. Overnight Levels")]
 public Brush OvernightHighColor { get; set; }
 
 [Browsable(false)]
@@ -8021,26 +8065,26 @@ public string OvernightHighColorSerialize
 }
 
 [NinjaScriptProperty]
-[Display(Name = "ONH Line Style", Description = "Line style for ONH", Order = 18, GroupName = "12. Levels - Overnight")]
+[Display(Name = "ONH Line Style", Description = "Line style for ONH", Order = 18, GroupName = "10. Overnight Levels")]
 public DashStyleHelper OvernightHighLineStyle { get; set; }
 
 [NinjaScriptProperty]
 [Range(1, 10)]
-[Display(Name = "ONH Thickness", Description = "Line thickness for ONH", Order = 19, GroupName = "12. Levels - Overnight")]
+[Display(Name = "ONH Thickness", Description = "Line thickness for ONH", Order = 19, GroupName = "10. Overnight Levels")]
 public int OvernightHighThickness { get; set; }
 
 [NinjaScriptProperty]
 [Range(0, 100)]
-[Display(Name = "ONH Opacity", Description = "Opacity for ONH line (0-100)", Order = 20, GroupName = "12. Levels - Overnight")]
+[Display(Name = "ONH Opacity", Description = "Opacity for ONH line (0-100)", Order = 20, GroupName = "10. Overnight Levels")]
 public int OvernightHighOpacity { get; set; }
 
 // Overnight Low
 [NinjaScriptProperty]
-[Display(Name = "Display Overnight Low", Description = "Show overnight session's Low", Order = 21, GroupName = "12. Levels - Overnight")]
+[Display(Name = "Display Overnight Low", Description = "Show overnight session's Low", Order = 21, GroupName = "10. Overnight Levels")]
 public bool DisplayOvernightLow { get; set; }
 
 [XmlIgnore]
-[Display(Name = "ONL Color", Description = "Color for ONL line", Order = 22, GroupName = "12. Levels - Overnight")]
+[Display(Name = "ONL Color", Description = "Color for ONL line", Order = 22, GroupName = "10. Overnight Levels")]
 public Brush OvernightLowColor { get; set; }
 
 [Browsable(false)]
@@ -8051,36 +8095,36 @@ public string OvernightLowColorSerialize
 }
 
 [NinjaScriptProperty]
-[Display(Name = "ONL Line Style", Description = "Line style for ONL", Order = 23, GroupName = "12. Levels - Overnight")]
+[Display(Name = "ONL Line Style", Description = "Line style for ONL", Order = 23, GroupName = "10. Overnight Levels")]
 public DashStyleHelper OvernightLowLineStyle { get; set; }
 
 [NinjaScriptProperty]
 [Range(1, 10)]
-[Display(Name = "ONL Thickness", Description = "Line thickness for ONL", Order = 24, GroupName = "12. Levels - Overnight")]
+[Display(Name = "ONL Thickness", Description = "Line thickness for ONL", Order = 24, GroupName = "10. Overnight Levels")]
 public int OvernightLowThickness { get; set; }
 
 [NinjaScriptProperty]
 [Range(0, 100)]
-[Display(Name = "ONL Opacity", Description = "Opacity for ONL line (0-100)", Order = 25, GroupName = "12. Levels - Overnight")]
+[Display(Name = "ONL Opacity", Description = "Opacity for ONL line (0-100)", Order = 25, GroupName = "10. Overnight Levels")]
 public int OvernightLowOpacity { get; set; }
 
 // Overnight Session Time Settings
 [NinjaScriptProperty]
 [Range(0, 2359)]
-[Display(Name = "Overnight Start Time", Description = "Overnight session start time in 24-hour format (HHMM). Default: 1800 = 6:00 PM", Order = 26, GroupName = "12. Levels - Overnight")]
+[Display(Name = "Overnight Start Time", Description = "Overnight session start time in 24-hour format (HHMM). Default: 1800 = 6:00 PM", Order = 26, GroupName = "10. Overnight Levels")]
 public int OvernightStartTime { get; set; }
 
 [NinjaScriptProperty]
 [Range(0, 2359)]
-[Display(Name = "Overnight End Time", Description = "Overnight session end time in 24-hour format (HHMM). Default: 0830 = 8:30 AM", Order = 27, GroupName = "12. Levels - Overnight")]
+[Display(Name = "Overnight End Time", Description = "Overnight session end time in 24-hour format (HHMM). Default: 0830 = 8:30 AM", Order = 27, GroupName = "10. Overnight Levels")]
 public int OvernightEndTime { get; set; }
 
 // ============================================
-// GROUP 08: SESSION NAKED LEVELS (formerly "Naked Levels", was GROUP 07)
+// NAKED LEVELS - SESSION STYLING (Group 11)
 // ============================================
 
 [XmlIgnore]
-[Display(Name = "Naked POC Color", Order = 1, GroupName = "13. Levels - Naked Sessions")]
+[Display(Name = "Naked POC Color", Order = 1, GroupName = "11. Naked Levels")]
 public Brush NakedPOCColor { get; set; }
 
 [Browsable(false)]
@@ -8091,21 +8135,21 @@ public string NakedPOCColorSerialize
 }
 
 [NinjaScriptProperty]
-[Display(Name = "Naked POC Line Style", Order = 2, GroupName = "13. Levels - Naked Sessions")]
+[Display(Name = "Naked POC Line Style", Order = 2, GroupName = "11. Naked Levels")]
 public DashStyleHelper NakedPOCLineStyle { get; set; }
 
 [NinjaScriptProperty]
 [Range(1, 10)]
-[Display(Name = "Naked POC Thickness", Order = 3, GroupName = "13. Levels - Naked Sessions")]
+[Display(Name = "Naked POC Thickness", Order = 3, GroupName = "11. Naked Levels")]
 public int NakedPOCThickness { get; set; }
 
 [NinjaScriptProperty]
 [Range(0, 100)]
-[Display(Name = "Naked POC Opacity", Order = 4, GroupName = "13. Levels - Naked Sessions")]
+[Display(Name = "Naked POC Opacity", Order = 4, GroupName = "11. Naked Levels")]
 public int NakedPOCOpacity { get; set; }
 
 [XmlIgnore]
-[Display(Name = "Naked VAH Color", Order = 5, GroupName = "13. Levels - Naked Sessions")]
+[Display(Name = "Naked VAH Color", Order = 5, GroupName = "11. Naked Levels")]
 public Brush NakedVAHColor { get; set; }
 
 [Browsable(false)]
@@ -8116,21 +8160,21 @@ public string NakedVAHColorSerialize
 }
 
 [NinjaScriptProperty]
-[Display(Name = "Naked VAH Line Style", Order = 6, GroupName = "13. Levels - Naked Sessions")]
+[Display(Name = "Naked VAH Line Style", Order = 6, GroupName = "11. Naked Levels")]
 public DashStyleHelper NakedVAHLineStyle { get; set; }
 
 [NinjaScriptProperty]
 [Range(1, 10)]
-[Display(Name = "Naked VAH Thickness", Order = 7, GroupName = "13. Levels - Naked Sessions")]
+[Display(Name = "Naked VAH Thickness", Order = 7, GroupName = "11. Naked Levels")]
 public int NakedVAHThickness { get; set; }
 
 [NinjaScriptProperty]
 [Range(0, 100)]
-[Display(Name = "Naked VAH Opacity", Order = 8, GroupName = "13. Levels - Naked Sessions")]
+[Display(Name = "Naked VAH Opacity", Order = 8, GroupName = "11. Naked Levels")]
 public int NakedVAHOpacity { get; set; }
 
 [XmlIgnore]
-[Display(Name = "Naked VAL Color", Order = 9, GroupName = "13. Levels - Naked Sessions")]
+[Display(Name = "Naked VAL Color", Order = 9, GroupName = "11. Naked Levels")]
 public Brush NakedVALColor { get; set; }
 
 [Browsable(false)]
@@ -8141,25 +8185,25 @@ public string NakedVALColorSerialize
 }
 
 [NinjaScriptProperty]
-[Display(Name = "Naked VAL Line Style", Order = 10, GroupName = "13. Levels - Naked Sessions")]
+[Display(Name = "Naked VAL Line Style", Order = 10, GroupName = "11. Naked Levels")]
 public DashStyleHelper NakedVALLineStyle { get; set; }
 
 [NinjaScriptProperty]
 [Range(1, 10)]
-[Display(Name = "Naked VAL Thickness", Order = 11, GroupName = "13. Levels - Naked Sessions")]
+[Display(Name = "Naked VAL Thickness", Order = 11, GroupName = "11. Naked Levels")]
 public int NakedVALThickness { get; set; }
 
 [NinjaScriptProperty]
 [Range(0, 100)]
-[Display(Name = "Naked VAL Opacity", Order = 12, GroupName = "13. Levels - Naked Sessions")]
+[Display(Name = "Naked VAL Opacity", Order = 12, GroupName = "11. Naked Levels")]
 public int NakedVALOpacity { get; set; }
 
 // ============================================
-// GROUP 09: WEEKLY SESSION NAKED LEVELS (was GROUP 08)
+// NAKED LEVELS - WEEKLY STYLING (Group 11)
 // ============================================
 
 [XmlIgnore]
-[Display(Name = "Weekly Naked POC Color", Order = 1, GroupName = "14. Levels - Naked Weekly")]
+[Display(Name = "Weekly Naked POC Color", Order = 20, GroupName = "11. Naked Levels")]
 public Brush WeeklyNakedPOCColor { get; set; }
 
 [Browsable(false)]
@@ -8170,21 +8214,21 @@ public string WeeklyNakedPOCColorSerialize
 }
 
 [NinjaScriptProperty]
-[Display(Name = "Weekly Naked POC Line Style", Order = 2, GroupName = "14. Levels - Naked Weekly")]
+[Display(Name = "Weekly Naked POC Line Style", Order = 21, GroupName = "11. Naked Levels")]
 public DashStyleHelper WeeklyNakedPOCLineStyle { get; set; }
 
 [NinjaScriptProperty]
 [Range(1, 10)]
-[Display(Name = "Weekly Naked POC Thickness", Order = 3, GroupName = "14. Levels - Naked Weekly")]
+[Display(Name = "Weekly Naked POC Thickness", Order = 22, GroupName = "11. Naked Levels")]
 public int WeeklyNakedPOCThickness { get; set; }
 
 [NinjaScriptProperty]
 [Range(0, 100)]
-[Display(Name = "Weekly Naked POC Opacity", Order = 4, GroupName = "14. Levels - Naked Weekly")]
+[Display(Name = "Weekly Naked POC Opacity", Order = 23, GroupName = "11. Naked Levels")]
 public int WeeklyNakedPOCOpacity { get; set; }
 
 [XmlIgnore]
-[Display(Name = "Weekly Naked VAH Color", Order = 5, GroupName = "14. Levels - Naked Weekly")]
+[Display(Name = "Weekly Naked VAH Color", Order = 24, GroupName = "11. Naked Levels")]
 public Brush WeeklyNakedVAHColor { get; set; }
 
 [Browsable(false)]
@@ -8195,21 +8239,21 @@ public string WeeklyNakedVAHColorSerialize
 }
 
 [NinjaScriptProperty]
-[Display(Name = "Weekly Naked VAH Line Style", Order = 6, GroupName = "14. Levels - Naked Weekly")]
+[Display(Name = "Weekly Naked VAH Line Style", Order = 25, GroupName = "11. Naked Levels")]
 public DashStyleHelper WeeklyNakedVAHLineStyle { get; set; }
 
 [NinjaScriptProperty]
 [Range(1, 10)]
-[Display(Name = "Weekly Naked VAH Thickness", Order = 7, GroupName = "14. Levels - Naked Weekly")]
+[Display(Name = "Weekly Naked VAH Thickness", Order = 26, GroupName = "11. Naked Levels")]
 public int WeeklyNakedVAHThickness { get; set; }
 
 [NinjaScriptProperty]
 [Range(0, 100)]
-[Display(Name = "Weekly Naked VAH Opacity", Order = 8, GroupName = "14. Levels - Naked Weekly")]
+[Display(Name = "Weekly Naked VAH Opacity", Order = 27, GroupName = "11. Naked Levels")]
 public int WeeklyNakedVAHOpacity { get; set; }
 
 [XmlIgnore]
-[Display(Name = "Weekly Naked VAL Color", Order = 9, GroupName = "14. Levels - Naked Weekly")]
+[Display(Name = "Weekly Naked VAL Color", Order = 28, GroupName = "11. Naked Levels")]
 public Brush WeeklyNakedVALColor { get; set; }
 
 [Browsable(false)]
@@ -8220,228 +8264,228 @@ public string WeeklyNakedVALColorSerialize
 }
 
 [NinjaScriptProperty]
-[Display(Name = "Weekly Naked VAL Line Style", Order = 10, GroupName = "14. Levels - Naked Weekly")]
+[Display(Name = "Weekly Naked VAL Line Style", Order = 29, GroupName = "11. Naked Levels")]
 public DashStyleHelper WeeklyNakedVALLineStyle { get; set; }
 
 [NinjaScriptProperty]
 [Range(1, 10)]
-[Display(Name = "Weekly Naked VAL Thickness", Order = 11, GroupName = "14. Levels - Naked Weekly")]
+[Display(Name = "Weekly Naked VAL Thickness", Order = 30, GroupName = "11. Naked Levels")]
 public int WeeklyNakedVALThickness { get; set; }
 
 [NinjaScriptProperty]
 [Range(0, 100)]
-[Display(Name = "Weekly Naked VAL Opacity", Order = 12, GroupName = "14. Levels - Naked Weekly")]
+[Display(Name = "Weekly Naked VAL Opacity", Order = 31, GroupName = "11. Naked Levels")]
 public int WeeklyNakedVALOpacity { get; set; }
 
 // ============================================
-// GROUP 10: NAKED LEVELS SETTINGS (was GROUP 09)
+// NAKED LEVELS - SETTINGS (Group 11)
 // ============================================
 
 [NinjaScriptProperty]
 [Display(Name = "Display Naked Levels", 
          Description = "Master toggle for all naked levels (session and weekly)",
-         Order = 1, GroupName = "15. Levels - Naked Settings")]
+         Order = 40, GroupName = "11. Naked Levels")]
 public bool DisplayNakedLevels { get; set; }
 
 [NinjaScriptProperty]
 [Range(1, 20)]
 [Display(Name = "Max Session Levels to Display", 
          Description = "Maximum number of past sessions to show naked levels from",
-         Order = 2, GroupName = "15. Levels - Naked Settings")]
+         Order = 41, GroupName = "11. Naked Levels")]
 public int MaxNakedLevelsToDisplay { get; set; }
 
 [NinjaScriptProperty]
 [Display(Name = "Display Weekly Naked Levels", 
          Description = "Enable naked levels from weekly sessions",
-         Order = 3, GroupName = "15. Levels - Naked Settings")]
+         Order = 42, GroupName = "11. Naked Levels")]
 public bool DisplayWeeklyNakedLevels { get; set; }
 
 [NinjaScriptProperty]
 [Range(1, 10)]
 [Display(Name = "Max Weekly Levels to Display", 
          Description = "Maximum number of past weeks to show naked levels from",
-         Order = 4, GroupName = "15. Levels - Naked Settings")]
+         Order = 43, GroupName = "11. Naked Levels")]
 public int MaxWeeklyNakedLevelsToDisplay { get; set; }
 
 // Session Level Persistence Settings
 [NinjaScriptProperty]
 [Display(Name = "Keep Filled Session Levels After Session", 
          Description = "When enabled, filled session levels persist across sessions until other removal criteria are met",
-         Order = 5, GroupName = "15. Levels - Naked Settings")]
+         Order = 44, GroupName = "11. Naked Levels")]
 public bool KeepFilledLevelsAfterSession { get; set; }
 
 [NinjaScriptProperty]
 [Range(0, 20)]
 [Display(Name = "Remove Session Levels After Touch Count", 
          Description = "Remove session levels after X session touches (0 = never remove based on touches)",
-         Order = 6, GroupName = "15. Levels - Naked Settings")]
+         Order = 45, GroupName = "11. Naked Levels")]
 public int RemoveAfterTouchCount { get; set; }
 
 // Weekly Level Persistence Settings
 [NinjaScriptProperty]
 [Display(Name = "Keep Filled Weekly Levels After Week", 
          Description = "When enabled, filled weekly levels persist across weeks until other removal criteria are met",
-         Order = 7, GroupName = "15. Levels - Naked Settings")]
+         Order = 46, GroupName = "11. Naked Levels")]
 public bool KeepFilledWeeklyLevelsAfterWeek { get; set; }
 
 [NinjaScriptProperty]
 [Range(0, 20)]
 [Display(Name = "Remove Weekly Levels After Touch Count", 
          Description = "Remove weekly levels after X weekly session touches (0 = never remove based on touches)",
-         Order = 8, GroupName = "15. Levels - Naked Settings")]
+         Order = 47, GroupName = "11. Naked Levels")]
 public int RemoveWeeklyAfterTouchCount { get; set; }
 
 // Display Options
 [NinjaScriptProperty]
 [Display(Name = "Show Touch Count in Labels", 
          Description = "Display touch count in level labels (e.g., 'nPOC 01/06 (2x)')",
-         Order = 9, GroupName = "15. Levels - Naked Settings")]
+         Order = 48, GroupName = "11. Naked Levels")]
 public bool ShowTouchCountInLabels { get; set; }
 
 [NinjaScriptProperty]
 [Display(Name = "Weird Date Formatting for the Brits", 
  Description = "Enable DD/MM format instead of MM/DD (because apparently they drive on the wrong side of the road AND write dates backwards)",
- Order = 10, GroupName = "15. Levels - Naked Settings")]
+ Order = 49, GroupName = "11. Naked Levels")]
 public bool BritishDateFormat { get; set; }
 
 // ============================================
-// GROUP 11: DISPLAY SETTINGS (was GROUP 10)
+// DISPLAY & LABELS (Group 15)
 // ============================================
 
 [NinjaScriptProperty]
 [Range(0, 500)]
-[Display(Name = "Historical Line Width", Description = "Width in bars for Previous Day and Naked Level lines. 0 = extend to current bar indefinitely", Order = 1, GroupName = "16. Display")]
+[Display(Name = "Historical Line Width", Description = "Width in bars for Previous Day and Naked Level lines. 0 = extend to current bar indefinitely", Order = 1, GroupName = "15. Display & Labels")]
 public int PreviousDayLineWidth { get; set; }
 
 [NinjaScriptProperty]
-[Display(Name = "Show Price Values in Labels", Description = "Display the numerical price value in level labels (e.g., 'pdVAL 4655' instead of just 'pdVAL')", Order = 2, GroupName = "16. Display")]
+[Display(Name = "Show Price Values in Labels", Description = "Display the numerical price value in level labels (e.g., 'pdVAL 4655' instead of just 'pdVAL')", Order = 2, GroupName = "15. Display & Labels")]
 public bool ShowPriceValuesInLabels { get; set; }
 
 [NinjaScriptProperty]
 [Range(5, 30)]
-[Display(Name = "Label Font Size", Description = "Font size for all level labels (POC, VAH, VAL, PD, Overnight, Naked, Weekly Naked)", Order = 3, GroupName = "16. Display")]
+[Display(Name = "Label Font Size", Description = "Font size for all level labels (POC, VAH, VAL, PD, Overnight, Naked, Weekly Naked)", Order = 3, GroupName = "15. Display & Labels")]
 public int LabelFontSize { get; set; }
 
 // ============================================
-// GROUP 12: DUAL PROFILE MODE (was GROUP 11)
+// DUAL PROFILE LAYOUT (Group 05)
 // ============================================
 
 [NinjaScriptProperty]
-[Display(Name = "Enable Dual Profile Mode", Description = "Display both Weekly and Session profiles side-by-side on the right panel", Order = 16, GroupName = "01. Profile - Mode")]
+[Display(Name = "Enable Dual Profile Mode", Description = "Display both Weekly and Session profiles side-by-side on the right panel", Order = 16, GroupName = "01. Profile Mode")]
 public bool EnableDualProfileMode { get; set; }
 
 [NinjaScriptProperty]
 [Range(50, 500)]
-[Display(Name = "Weekly Profile Width", Description = "Width in pixels for the weekly profile", Order = 1, GroupName = "03. Profile - Dual Layout")]
+[Display(Name = "Weekly Profile Width", Description = "Width in pixels for the weekly profile", Order = 1, GroupName = "05. Dual Profile Layout")]
 public int WeeklyProfileWidth { get; set; }
 
 [NinjaScriptProperty]
 [Range(50, 500)]
-[Display(Name = "Session Profile Width", Description = "Width in pixels for the session profile", Order = 2, GroupName = "03. Profile - Dual Layout")]
+[Display(Name = "Session Profile Width", Description = "Width in pixels for the session profile", Order = 2, GroupName = "05. Dual Profile Layout")]
 public int SessionProfileWidth { get; set; }
 
 [NinjaScriptProperty]
 [Range(0, 100)]
-[Display(Name = "Gap Between Profiles", Description = "Gap in pixels between session and weekly profiles", Order = 3, GroupName = "03. Profile - Dual Layout")]
+[Display(Name = "Gap Between Profiles", Description = "Gap in pixels between session and weekly profiles", Order = 3, GroupName = "05. Dual Profile Layout")]
 public int ProfileGap { get; set; }
 
 [NinjaScriptProperty]
-[Display(Name = "Use Custom Daily Session Times", Description = "Override default session with custom times for daily profile (Dual Mode only)", Order = 4, GroupName = "03. Profile - Dual Layout")]
+[Display(Name = "Use Custom Daily Session Times", Description = "Override default session with custom times for daily profile (Dual Mode only)", Order = 4, GroupName = "05. Dual Profile Layout")]
 public bool UseCustomDailySessionTimes { get; set; }
 
 [NinjaScriptProperty]
 [Range(0, 2359)]
-[Display(Name = "Daily Session Start Time", Description = "Custom start time (HHMM). Example: 0930 = 9:30 AM", Order = 5, GroupName = "03. Profile - Dual Layout")]
+[Display(Name = "Daily Session Start Time", Description = "Custom start time (HHMM). Example: 0930 = 9:30 AM", Order = 5, GroupName = "05. Dual Profile Layout")]
 public int DailySessionStartTime { get; set; }
 
 [NinjaScriptProperty]
 [Range(0, 2359)]
-[Display(Name = "Daily Session End Time", Description = "Custom end time (HHMM). Example: 1600 = 4:00 PM", Order = 6, GroupName = "03. Profile - Dual Layout")]
+[Display(Name = "Daily Session End Time", Description = "Custom end time (HHMM). Example: 1600 = 4:00 PM", Order = 6, GroupName = "05. Dual Profile Layout")]
 public int DailySessionEndTime { get; set; }
 
 [NinjaScriptProperty]
-[Display(Name = "Session Profile Style", Description = "Render session profile as filled bars or smooth outline", Order = 7, GroupName = "03. Profile - Dual Layout")]
+[Display(Name = "Session Profile Style", Description = "Render session profile as filled bars or smooth outline", Order = 7, GroupName = "05. Dual Profile Layout")]
 public SessionProfileStyleEnum SessionProfileStyle { get; set; }
 
 [NinjaScriptProperty]
 [Range(0, 100)]
-[Display(Name = "Session Outline Smoothness", Description = "0=sharp corners, 100=very smooth curves", Order = 8, GroupName = "03. Profile - Dual Layout")]
+[Display(Name = "Session Outline Smoothness", Description = "0=sharp corners, 100=very smooth curves", Order = 8, GroupName = "05. Dual Profile Layout")]
 public int SessionOutlineSmoothness { get; set; }
 
 // ============================================
-// GROUP 13: WEEKLY PROFILE SETTINGS (was GROUP 12)
+// DUAL WEEKLY PROFILE (Group 06)
 // ============================================
 
 [NinjaScriptProperty]
 [Range(10, 1000)]
-[Display(Name = "Number of Volume Bars", Description = "Price levels in weekly profile", Order = 1, GroupName = "04. Profile - Dual Weekly")]
+[Display(Name = "Number of Volume Bars", Description = "Price levels in weekly profile", Order = 1, GroupName = "06. Dual Weekly Profile")]
 public int WeeklyNumberOfVolumeBars { get; set; }
 
 [NinjaScriptProperty]
 [Range(1, 10)]
-[Display(Name = "Bar Thickness", Description = "Thickness of weekly volume bars", Order = 2, GroupName = "04. Profile - Dual Weekly")]
+[Display(Name = "Bar Thickness", Description = "Thickness of weekly volume bars", Order = 2, GroupName = "06. Dual Weekly Profile")]
 public int WeeklyBarThickness { get; set; }
 
 [NinjaScriptProperty]
-[Display(Name = "Volume Type", Description = "Type of volume to include in weekly profile", Order = 3, GroupName = "04. Profile - Dual Weekly")]
+[Display(Name = "Volume Type", Description = "Type of volume to include in weekly profile", Order = 3, GroupName = "06. Dual Weekly Profile")]
 public VolumeTypeEnum WeeklyVolumeType { get; set; }
 
 [NinjaScriptProperty]
 [Range(0, 100)]
-[Display(Name = "Bar Opacity", Description = "Opacity 0-100 for weekly bars", Order = 4, GroupName = "04. Profile - Dual Weekly")]
+[Display(Name = "Bar Opacity", Description = "Opacity 0-100 for weekly bars", Order = 4, GroupName = "06. Dual Weekly Profile")]
 public int WeeklyBarOpacity { get; set; }
 
 [NinjaScriptProperty]
-[Display(Name = "Display PoC", Description = "Show PoC in weekly profile", Order = 5, GroupName = "04. Profile - Dual Weekly")]
+[Display(Name = "Display PoC", Description = "Show PoC in weekly profile", Order = 5, GroupName = "06. Dual Weekly Profile")]
 public bool WeeklyDisplayPoC { get; set; }
 
 [NinjaScriptProperty]
 [Range(1, 10)]
-[Display(Name = "PoC Line Thickness", Description = "Weekly PoC line width", Order = 6, GroupName = "04. Profile - Dual Weekly")]
+[Display(Name = "PoC Line Thickness", Description = "Weekly PoC line width", Order = 6, GroupName = "06. Dual Weekly Profile")]
 public int WeeklyPoCLineThickness { get; set; }
 
 [NinjaScriptProperty]
 [Range(0, 100)]
-[Display(Name = "PoC Line Opacity", Description = "Opacity of weekly PoC line (0-100)", Order = 7, GroupName = "04. Profile - Dual Weekly")]
+[Display(Name = "PoC Line Opacity", Description = "Opacity of weekly PoC line (0-100)", Order = 7, GroupName = "06. Dual Weekly Profile")]
 public int WeeklyPoCLineOpacity { get; set; }
 
 [NinjaScriptProperty]
-[Display(Name = "Display Value Area", Description = "Show Value Area in weekly profile", Order = 8, GroupName = "04. Profile - Dual Weekly")]
+[Display(Name = "Display Value Area", Description = "Show Value Area in weekly profile", Order = 8, GroupName = "06. Dual Weekly Profile")]
 public bool WeeklyDisplayValueArea { get; set; }
 
 [NinjaScriptProperty]
 [Range(5, 95)]
-[Display(Name = "Value Area Percentage", Description = "VA percentage for weekly profile", Order = 9, GroupName = "04. Profile - Dual Weekly")]
+[Display(Name = "Value Area Percentage", Description = "VA percentage for weekly profile", Order = 9, GroupName = "06. Dual Weekly Profile")]
 public int WeeklyValueAreaPercentage { get; set; }
 
 [NinjaScriptProperty]
-[Display(Name = "Display VA Lines", Description = "Show VA boundary lines in weekly profile", Order = 10, GroupName = "04. Profile - Dual Weekly")]
+[Display(Name = "Display VA Lines", Description = "Show VA boundary lines in weekly profile", Order = 10, GroupName = "06. Dual Weekly Profile")]
 public bool WeeklyDisplayValueAreaLines { get; set; }
 
 [NinjaScriptProperty]
 [Range(1, 10)]
-[Display(Name = "VA Lines Thickness", Description = "Thickness of weekly VAH/VAL lines", Order = 11, GroupName = "04. Profile - Dual Weekly")]
+[Display(Name = "VA Lines Thickness", Description = "Thickness of weekly VAH/VAL lines", Order = 11, GroupName = "06. Dual Weekly Profile")]
 public int WeeklyValueAreaLinesThickness { get; set; }
 
 [NinjaScriptProperty]
 [Range(0, 100)]
-[Display(Name = "VA Lines Opacity", Description = "Opacity of weekly VAH/VAL lines (0-100)", Order = 12, GroupName = "04. Profile - Dual Weekly")]
+[Display(Name = "VA Lines Opacity", Description = "Opacity of weekly VAH/VAL lines (0-100)", Order = 12, GroupName = "06. Dual Weekly Profile")]
 public int WeeklyValueAreaLinesOpacity { get; set; }
 
 [NinjaScriptProperty]
-[Display(Name = "Extend PoC Line", Description = "Extend weekly PoC line to left edge of chart", Order = 13, GroupName = "04. Profile - Dual Weekly")]
+[Display(Name = "Extend PoC Line", Description = "Extend weekly PoC line to left edge of chart", Order = 13, GroupName = "06. Dual Weekly Profile")]
 public bool WeeklyExtendPoCLine { get; set; }
 
 [NinjaScriptProperty]
-[Display(Name = "Extend VA Lines", Description = "Extend weekly VAH/VAL lines to left edge of chart", Order = 14, GroupName = "04. Profile - Dual Weekly")]
+[Display(Name = "Extend VA Lines", Description = "Extend weekly VAH/VAL lines to left edge of chart", Order = 14, GroupName = "06. Dual Weekly Profile")]
 public bool WeeklyExtendValueAreaLines { get; set; }
 
 // ============================================
-// GROUP 14: WEEKLY PROFILE COLORS (was GROUP 13)
+// DUAL WEEKLY PROFILE COLORS (Group 06)
 // ============================================
 
 [XmlIgnore]
-[Display(Name = "Weekly Bar Color", Order = 20, GroupName = "04. Profile - Dual Weekly")]
+[Display(Name = "Weekly Bar Color", Order = 20, GroupName = "06. Dual Weekly Profile")]
 public Brush WeeklyBarColor { get; set; }
 
 [Browsable(false)]
@@ -8452,7 +8496,7 @@ public string WeeklyBarColorSerialize
 }
 
 [XmlIgnore]
-[Display(Name = "Weekly PoC Color", Order = 2, GroupName = "04. Profile - Dual Weekly")]
+[Display(Name = "Weekly PoC Color", Order = 2, GroupName = "06. Dual Weekly Profile")]
 public Brush WeeklyPoCColor { get; set; }
 
 [Browsable(false)]
@@ -8463,7 +8507,7 @@ public string WeeklyPoCColorSerialize
 }
 
 [XmlIgnore]
-[Display(Name = "Weekly VA Color", Order = 21, GroupName = "04. Profile - Dual Weekly")]
+[Display(Name = "Weekly VA Color", Order = 21, GroupName = "06. Dual Weekly Profile")]
 public Brush WeeklyVAColor { get; set; }
 
 [Browsable(false)]
@@ -8474,7 +8518,7 @@ public string WeeklyVAColorSerialize
 }
 
 [XmlIgnore]
-[Display(Name = "Weekly VA Lines Color", Order = 22, GroupName = "04. Profile - Dual Weekly")]
+[Display(Name = "Weekly VA Lines Color", Order = 22, GroupName = "06. Dual Weekly Profile")]
 public Brush WeeklyVALinesColor { get; set; }
 
 [Browsable(false)]
@@ -8485,79 +8529,79 @@ public string WeeklyVALinesColorSerialize
 }
 
 // ============================================
-// GROUP 15: SESSION PROFILE SETTINGS (was GROUP 14)
+// DUAL SESSION PROFILE (Group 07)
 // ============================================
 
 [NinjaScriptProperty]
 [Range(10, 1000)]
-[Display(Name = "Number of Volume Bars", Description = "Price levels in session profile", Order = 1, GroupName = "05. Profile - Dual Session")]
+[Display(Name = "Number of Volume Bars", Description = "Price levels in session profile", Order = 1, GroupName = "07. Dual Session Profile")]
 public int SessionNumberOfVolumeBars { get; set; }
 
 [NinjaScriptProperty]
 [Range(1, 10)]
-[Display(Name = "Bar Thickness", Description = "Thickness of session volume bars", Order = 2, GroupName = "05. Profile - Dual Session")]
+[Display(Name = "Bar Thickness", Description = "Thickness of session volume bars", Order = 2, GroupName = "07. Dual Session Profile")]
 public int SessionBarThickness { get; set; }
 
 [NinjaScriptProperty]
-[Display(Name = "Volume Type", Description = "Type of volume to include in session profile", Order = 3, GroupName = "05. Profile - Dual Session")]
+[Display(Name = "Volume Type", Description = "Type of volume to include in session profile", Order = 3, GroupName = "07. Dual Session Profile")]
 public VolumeTypeEnum SessionVolumeType { get; set; }
 
 [NinjaScriptProperty]
 [Range(0, 100)]
-[Display(Name = "Bar Opacity", Description = "Opacity 0-100 for session bars", Order = 4, GroupName = "05. Profile - Dual Session")]
+[Display(Name = "Bar Opacity", Description = "Opacity 0-100 for session bars", Order = 4, GroupName = "07. Dual Session Profile")]
 public int SessionBarOpacity { get; set; }
 
 [NinjaScriptProperty]
-[Display(Name = "Display PoC", Description = "Show PoC in session profile", Order = 5, GroupName = "05. Profile - Dual Session")]
+[Display(Name = "Display PoC", Description = "Show PoC in session profile", Order = 5, GroupName = "07. Dual Session Profile")]
 public bool SessionDisplayPoC { get; set; }
 
 [NinjaScriptProperty]
 [Range(1, 10)]
-[Display(Name = "PoC Line Thickness", Description = "Session PoC line width", Order = 6, GroupName = "05. Profile - Dual Session")]
+[Display(Name = "PoC Line Thickness", Description = "Session PoC line width", Order = 6, GroupName = "07. Dual Session Profile")]
 public int SessionPoCLineThickness { get; set; }
 
 [NinjaScriptProperty]
 [Range(0, 100)]
-[Display(Name = "PoC Line Opacity", Description = "Opacity of session PoC line (0-100)", Order = 7, GroupName = "05. Profile - Dual Session")]
+[Display(Name = "PoC Line Opacity", Description = "Opacity of session PoC line (0-100)", Order = 7, GroupName = "07. Dual Session Profile")]
 public int SessionPoCLineOpacity { get; set; }
 
 [NinjaScriptProperty]
-[Display(Name = "Display Value Area", Description = "Show Value Area in session profile", Order = 8, GroupName = "05. Profile - Dual Session")]
+[Display(Name = "Display Value Area", Description = "Show Value Area in session profile", Order = 8, GroupName = "07. Dual Session Profile")]
 public bool SessionDisplayValueArea { get; set; }
 
 [NinjaScriptProperty]
 [Range(5, 95)]
-[Display(Name = "Value Area Percentage", Description = "VA percentage for session profile", Order = 9, GroupName = "05. Profile - Dual Session")]
+[Display(Name = "Value Area Percentage", Description = "VA percentage for session profile", Order = 9, GroupName = "07. Dual Session Profile")]
 public int SessionValueAreaPercentage { get; set; }
 
 [NinjaScriptProperty]
-[Display(Name = "Display VA Lines", Description = "Show VA boundary lines in session profile", Order = 10, GroupName = "05. Profile - Dual Session")]
+[Display(Name = "Display VA Lines", Description = "Show VA boundary lines in session profile", Order = 10, GroupName = "07. Dual Session Profile")]
 public bool SessionDisplayValueAreaLines { get; set; }
 
 [NinjaScriptProperty]
 [Range(1, 10)]
-[Display(Name = "VA Lines Thickness", Description = "Thickness of session VAH/VAL lines", Order = 11, GroupName = "05. Profile - Dual Session")]
+[Display(Name = "VA Lines Thickness", Description = "Thickness of session VAH/VAL lines", Order = 11, GroupName = "07. Dual Session Profile")]
 public int SessionValueAreaLinesThickness { get; set; }
 
 [NinjaScriptProperty]
 [Range(0, 100)]
-[Display(Name = "VA Lines Opacity", Description = "Opacity of session VAH/VAL lines (0-100)", Order = 12, GroupName = "05. Profile - Dual Session")]
+[Display(Name = "VA Lines Opacity", Description = "Opacity of session VAH/VAL lines (0-100)", Order = 12, GroupName = "07. Dual Session Profile")]
 public int SessionValueAreaLinesOpacity { get; set; }
 
 [NinjaScriptProperty]
-[Display(Name = "Extend PoC Line", Description = "Extend session PoC line to left edge of chart", Order = 13, GroupName = "05. Profile - Dual Session")]
+[Display(Name = "Extend PoC Line", Description = "Extend session PoC line to left edge of chart", Order = 13, GroupName = "07. Dual Session Profile")]
 public bool SessionExtendPoCLine { get; set; }
 
 [NinjaScriptProperty]
-[Display(Name = "Extend VA Lines", Description = "Extend session VAH/VAL lines to left edge of chart", Order = 14, GroupName = "05. Profile - Dual Session")]
+[Display(Name = "Extend VA Lines", Description = "Extend session VAH/VAL lines to left edge of chart", Order = 14, GroupName = "07. Dual Session Profile")]
 public bool SessionExtendValueAreaLines { get; set; }
 
 // ============================================
-// GROUP 16: SESSION PROFILE COLORS (was GROUP 15)
+// DUAL SESSION PROFILE COLORS (Group 07)
 // ============================================
 
 [XmlIgnore]
-[Display(Name = "Session Outline Color", Order = 20, GroupName = "05. Profile - Dual Session")]
+[Display(Name = "Session Outline Color", Order = 20, GroupName = "07. Dual Session Profile")]
 public Brush SessionOutlineColor { get; set; }
 
 [Browsable(false)]
@@ -8568,7 +8612,7 @@ public string SessionOutlineColorSerialize
 }
 
 [XmlIgnore]
-[Display(Name = "Session PoC Color", Order = 2, GroupName = "05. Profile - Dual Session")]
+[Display(Name = "Session PoC Color", Order = 2, GroupName = "07. Dual Session Profile")]
 public Brush SessionPoCColor { get; set; }
 
 [Browsable(false)]
@@ -8579,11 +8623,11 @@ public string SessionPoCColorSerialize
 }
 
 [XmlIgnore]
-[Display(Name = "Session VA Lines Color", Order = 21, GroupName = "05. Profile - Dual Session")]
+[Display(Name = "Session VA Lines Color", Order = 21, GroupName = "07. Dual Session Profile")]
 public Brush SessionVALinesColor { get; set; }
 
 [XmlIgnore]
-[Display(Name = "Session VA Bar Color", Description = "Color for Value Area bars in filled mode", Order = 4, GroupName = "05. Profile - Dual Session")]
+[Display(Name = "Session VA Bar Color", Description = "Color for Value Area bars in filled mode", Order = 4, GroupName = "07. Dual Session Profile")]
 public Brush SessionVAColor { get; set; }
 
 [Browsable(false)]
@@ -8601,65 +8645,65 @@ public string SessionVALinesColorSerialize
 }
 
 // ============================================
-// GROUP 17: GRADIENT FILL (was GROUP 16)
+// GRADIENT FILL (in Profile Appearance, Group 02)
 // ============================================
 
 [NinjaScriptProperty]
-[Display(Name = "Enable Gradient Fill", Description = "Apply gradient effect to volume bars (fade in from left to right)", Order = 1, GroupName = "09. Profile - Gradient")]
+[Display(Name = "Enable Gradient Fill", Description = "Apply gradient effect to volume bars (fade in from left to right)", Order = 20, GroupName = "02. Profile Appearance")]
 public bool EnableGradientFill { get; set; }
 
 [NinjaScriptProperty]
 [Range(0, 100)]
-[Display(Name = "Gradient Intensity", Description = "0=no fade (solid), 100=maximum fade effect", Order = 2, GroupName = "09. Profile - Gradient")]
+[Display(Name = "Gradient Intensity", Description = "0=no fade (solid), 100=maximum fade effect", Order = 21, GroupName = "02. Profile Appearance")]
 public int GradientIntensity { get; set; }
 
 // ============================================
-// GROUP: ADAPTIVE RENDERING
+// ADAPTIVE RENDERING (in Profile Appearance, Group 02)
 // ============================================
 
-[Display(Name = "Render Quality", Description = "Manual = fixed bar thickness (classic). Adaptive = auto-sizes bars to fill pixel space and smooths the profile shape for a cleaner look.", Order = 1, GroupName = "10. Profile - Adaptive Rendering")]
+[Display(Name = "Render Quality", Description = "Manual = fixed bar thickness (classic). Adaptive = auto-sizes bars to fill pixel space and smooths the profile shape for a cleaner look.", Order = 30, GroupName = "02. Profile Appearance")]
 public ProfileRenderQuality RenderQuality { get; set; }
 
 [Range(0, 5)]
-[Display(Name = "Smoothing Passes", Description = "Number of Gaussian smoothing passes applied to the profile shape. 0=raw data, 1=slight smoothing, 2-3=recommended for most charts, 4-5=very smooth.", Order = 2, GroupName = "10. Profile - Adaptive Rendering")]
+[Display(Name = "Smoothing Passes", Description = "Number of Gaussian smoothing passes applied to the profile shape. 0=raw data, 1=slight smoothing, 2-3=recommended for most charts, 4-5=very smooth.", Order = 31, GroupName = "02. Profile Appearance")]
 public int SmoothingPasses { get; set; }
 
 [Range(1.0f, 10.0f)]
-[Display(Name = "Min Bar Pixel Height", Description = "Minimum bar height in pixels (prevents bars from disappearing when zoomed out)", Order = 3, GroupName = "10. Profile - Adaptive Rendering")]
+[Display(Name = "Min Bar Pixel Height", Description = "Minimum bar height in pixels (prevents bars from disappearing when zoomed out)", Order = 32, GroupName = "02. Profile Appearance")]
 public float MinBarPixelHeight { get; set; }
 
 [Range(2.0f, 20.0f)]
-[Display(Name = "Max Bar Pixel Height", Description = "Maximum bar height in pixels (prevents bars from getting too thick when zoomed in)", Order = 4, GroupName = "10. Profile - Adaptive Rendering")]
+[Display(Name = "Max Bar Pixel Height", Description = "Maximum bar height in pixels (prevents bars from getting too thick when zoomed in)", Order = 33, GroupName = "02. Profile Appearance")]
 public float MaxBarPixelHeight { get; set; }
 
 // ============================================
-// GROUP 18: LVN DETECTION (was GROUP 17)
+// LVN DETECTION (Group 12)
 // ============================================
 
 [NinjaScriptProperty]
-[Display(Name = "Display LVN", Description = "Enable/disable Low Volume Node detection and display", Order = 1, GroupName = "17. LVN")]
+[Display(Name = "Display LVN", Description = "Enable/disable Low Volume Node detection and display", Order = 1, GroupName = "12. LVN Detection")]
 public bool DisplayLVN { get; set; }
 
 [NinjaScriptProperty]
 [Range(20, 500)]
-[Display(Name = "LVN Number of Rows", Description = "Granularity of LVN analysis. More rows = finer/noisier LVNs. Fewer rows = broader/smoother zones.", Order = 2, GroupName = "17. LVN")]
+[Display(Name = "LVN Number of Rows", Description = "Granularity of LVN analysis. More rows = finer/noisier LVNs. Fewer rows = broader/smoother zones.", Order = 2, GroupName = "12. LVN Detection")]
 public int LVNNumberOfRows { get; set; }
 
 [NinjaScriptProperty]
 [Range(1, 50)]
-[Display(Name = "LVN Detection %", Description = "Percentage of rows used for LVN detection (lower = more sensitive)", Order = 3, GroupName = "17. LVN")]
+[Display(Name = "LVN Detection %", Description = "Percentage of rows used for LVN detection (lower = more sensitive)", Order = 3, GroupName = "12. LVN Detection")]
 public int LVNDetectionPercent { get; set; }
 
 [NinjaScriptProperty]
-[Display(Name = "Show Adjacent LVN Nodes", Description = "Include nodes above and below each LVN (creates wider zones)", Order = 4, GroupName = "17. LVN")]
+[Display(Name = "Show Adjacent LVN Nodes", Description = "Include nodes above and below each LVN (creates wider zones)", Order = 4, GroupName = "12. LVN Detection")]
 public bool ShowAdjacentLVNNodes { get; set; }
 
 // ============================================
-// GROUP 19: LVN DISPLAY (was GROUP 18)
+// LVN DISPLAY (Group 12)
 // ============================================
 
 [XmlIgnore]
-[Display(Name = "LVN Fill Color", Description = "Fill color for LVN rectangles", Order = 10, GroupName = "17. LVN")]
+[Display(Name = "LVN Fill Color", Description = "Fill color for LVN rectangles", Order = 10, GroupName = "12. LVN Detection")]
 public Brush LVNFillColor { get; set; }
 
 [Browsable(false)]
@@ -8671,11 +8715,11 @@ public string LVNFillColorSerializable
 
 [NinjaScriptProperty]
 [Range(0, 100)]
-[Display(Name = "LVN Fill Opacity %", Description = "Opacity of LVN fill color (0=transparent, 100=solid)", Order = 11, GroupName = "17. LVN")]
+[Display(Name = "LVN Fill Opacity %", Description = "Opacity of LVN fill color (0=transparent, 100=solid)", Order = 11, GroupName = "12. LVN Detection")]
 public int LVNFillOpacity { get; set; }
 
 [XmlIgnore]
-[Display(Name = "LVN Border Color", Description = "Border color for LVN rectangles", Order = 3, GroupName = "17. LVN")]
+[Display(Name = "LVN Border Color", Description = "Border color for LVN rectangles", Order = 3, GroupName = "12. LVN Detection")]
 public Brush LVNBorderColor { get; set; }
 
 [Browsable(false)]
@@ -8687,7 +8731,7 @@ public string LVNBorderColorSerializable
 
 [NinjaScriptProperty]
 [Range(0, 100)]
-[Display(Name = "LVN Border Opacity %", Description = "Opacity of LVN border (0=transparent, 100=solid)", Order = 4, GroupName = "17. LVN")]
+[Display(Name = "LVN Border Opacity %", Description = "Opacity of LVN border (0=transparent, 100=solid)", Order = 4, GroupName = "12. LVN Detection")]
 public int LVNBorderOpacity { get; set; }
 
         // ============================================
@@ -8787,80 +8831,80 @@ public int LVNBorderOpacity { get; set; }
         }
 		
 		// ============================================
-        // GROUP 20: ALERT SETTINGS (NEW)
+        // ALERTS (Group 14)
         // ============================================
         
         [NinjaScriptProperty]
-        [Display(Name = "Enable Alerts", Description = "Enable alerts when price approaches key levels", Order = 1, GroupName = "18. Alerts")]
+        [Display(Name = "Enable Alerts", Description = "Enable alerts when price approaches key levels", Order = 1, GroupName = "14. Alerts")]
         public bool EnableAlerts { get; set; }
         
         [NinjaScriptProperty]
         [Range(1, 100)]
-        [Display(Name = "Alert Distance (Ticks)", Description = "Trigger alert when price is within this many ticks of a level", Order = 2, GroupName = "18. Alerts")]
+        [Display(Name = "Alert Distance (Ticks)", Description = "Trigger alert when price is within this many ticks of a level", Order = 2, GroupName = "14. Alerts")]
         public int AlertDistanceTicks { get; set; }
         
         [NinjaScriptProperty]
-        [Display(Name = "Alert on Previous Day Levels", Description = "Enable alerts for pdPOC, pdVAH, pdVAL, PDH, PDL", Order = 3, GroupName = "18. Alerts")]
+        [Display(Name = "Alert on Previous Day Levels", Description = "Enable alerts for pdPOC, pdVAH, pdVAL, PDH, PDL", Order = 3, GroupName = "14. Alerts")]
         public bool AlertOnPreviousDayLevels { get; set; }
         
         [NinjaScriptProperty]
-        [Display(Name = "Alert on Previous Week Levels", Description = "Enable alerts for pwPOC, pwVAH, pwVAL, pwHigh, pwLow", Order = 4, GroupName = "18. Alerts")]
+        [Display(Name = "Alert on Previous Week Levels", Description = "Enable alerts for pwPOC, pwVAH, pwVAL, pwHigh, pwLow", Order = 4, GroupName = "14. Alerts")]
         public bool AlertOnPreviousWeekLevels { get; set; }
         
         [NinjaScriptProperty]
-        [Display(Name = "Alert on Naked Levels", Description = "Enable alerts for naked session levels", Order = 5, GroupName = "18. Alerts")]
+        [Display(Name = "Alert on Naked Levels", Description = "Enable alerts for naked session levels", Order = 5, GroupName = "14. Alerts")]
         public bool AlertOnNakedLevels { get; set; }
         
         [NinjaScriptProperty]
-        [Display(Name = "Alert on Weekly Naked Levels", Description = "Enable alerts for naked weekly levels", Order = 6, GroupName = "18. Alerts")]
+        [Display(Name = "Alert on Weekly Naked Levels", Description = "Enable alerts for naked weekly levels", Order = 6, GroupName = "14. Alerts")]
         public bool AlertOnWeeklyNakedLevels { get; set; }
         
         [NinjaScriptProperty]
-        [Display(Name = "Alert on Overnight Levels", Description = "Enable alerts for overnight session levels", Order = 7, GroupName = "18. Alerts")]
+        [Display(Name = "Alert on Overnight Levels", Description = "Enable alerts for overnight session levels", Order = 7, GroupName = "14. Alerts")]
         public bool AlertOnOvernightLevels { get; set; }
         
         [NinjaScriptProperty]
-        [Display(Name = "Play Alert Sound", Description = "Play sound when alert triggers", Order = 8, GroupName = "18. Alerts")]
+        [Display(Name = "Play Alert Sound", Description = "Play sound when alert triggers", Order = 8, GroupName = "14. Alerts")]
         public bool PlayAlertSound { get; set; }
         
         [NinjaScriptProperty]
-        [Display(Name = "Alert Sound File", Description = "Sound file to play (must be in NinjaTrader sounds folder)", Order = 9, GroupName = "18. Alerts")]
+        [Display(Name = "Alert Sound File", Description = "Sound file to play (must be in NinjaTrader sounds folder)", Order = 9, GroupName = "14. Alerts")]
         public string AlertSoundFile { get; set; }
         
         [NinjaScriptProperty]
-        [Display(Name = "Rearm Alerts on New Session", Description = "Reset alerts at the start of each new trading session", Order = 10, GroupName = "18. Alerts")]
+        [Display(Name = "Rearm Alerts on New Session", Description = "Reset alerts at the start of each new trading session", Order = 10, GroupName = "14. Alerts")]
         public bool RearmAlertsOnNewSession { get; set; }
 		
 		// ============================================
-// GROUP 21: MOVE PROFILES (NEW)
+// MOVE PROFILES (Group 13)
 // ============================================
 
 [NinjaScriptProperty]
-[Display(Name = "Enable Move Profiles", Description = "Automatically create volume profiles for each consolidation → breakout → move sequence", Order = 1, GroupName = "19. Move Profiles (Experimental)")]
+[Display(Name = "Enable Move Profiles", Description = "Automatically create volume profiles for each consolidation → breakout → move sequence", Order = 1, GroupName = "13. Move Profiles (Experimental)")]
 public bool EnableMoveProfiles { get; set; }
 
 [NinjaScriptProperty]
 [Range(5, 100)]
-[Display(Name = "Consolidation Bars", Description = "Number of bars to define consolidation (no new swing highs/lows)", Order = 2, GroupName = "19. Move Profiles (Experimental)")]
+[Display(Name = "Consolidation Bars", Description = "Number of bars to define consolidation (no new swing highs/lows)", Order = 2, GroupName = "13. Move Profiles (Experimental)")]
 public int ConsolidationBars { get; set; }
 
 [NinjaScriptProperty]
 [Range(1, 50)]
-[Display(Name = "Breakout Threshold (Ticks)", Description = "Price must move this many ticks beyond consolidation range to trigger breakout", Order = 3, GroupName = "19. Move Profiles (Experimental)")]
+[Display(Name = "Breakout Threshold (Ticks)", Description = "Price must move this many ticks beyond consolidation range to trigger breakout", Order = 3, GroupName = "13. Move Profiles (Experimental)")]
 public int BreakoutThresholdTicks { get; set; }
 
 [NinjaScriptProperty]
 [Range(5, 100)]
-[Display(Name = "Minimum Move Size (Ticks)", Description = "Ignore moves smaller than this (filters noise)", Order = 4, GroupName = "19. Move Profiles (Experimental)")]
+[Display(Name = "Minimum Move Size (Ticks)", Description = "Ignore moves smaller than this (filters noise)", Order = 4, GroupName = "13. Move Profiles (Experimental)")]
 public int MinimumMoveSizeTicks { get; set; }
 
 [NinjaScriptProperty]
 [Range(1, 20)]
-[Display(Name = "Maximum Moves to Display", Description = "Show only the most recent N completed moves", Order = 5, GroupName = "19. Move Profiles (Experimental)")]
+[Display(Name = "Maximum Moves to Display", Description = "Show only the most recent N completed moves", Order = 5, GroupName = "13. Move Profiles (Experimental)")]
 public int MaxMovesToDisplay { get; set; }
 
 [XmlIgnore]
-[Display(Name = "Move Profile Color", Description = "Color for move profile bars", Order = 6, GroupName = "19. Move Profiles (Experimental)")]
+[Display(Name = "Move Profile Color", Description = "Color for move profile bars", Order = 6, GroupName = "13. Move Profiles (Experimental)")]
 public Brush MoveProfileColor { get; set; }
 
 [Browsable(false)]
@@ -8872,11 +8916,11 @@ public string MoveProfileColorSerialize
 
 [NinjaScriptProperty]
 [Range(0, 100)]
-[Display(Name = "Move Profile Opacity", Description = "Opacity for move profiles (0-100, lower = more transparent)", Order = 7, GroupName = "19. Move Profiles (Experimental)")]
+[Display(Name = "Move Profile Opacity", Description = "Opacity for move profiles (0-100, lower = more transparent)", Order = 7, GroupName = "13. Move Profiles (Experimental)")]
 public int MoveProfileOpacity { get; set; }
 
 [XmlIgnore]
-[Display(Name = "Move POC Color", Description = "Color for move POC lines", Order = 8, GroupName = "19. Move Profiles (Experimental)")]
+[Display(Name = "Move POC Color", Description = "Color for move POC lines", Order = 8, GroupName = "13. Move Profiles (Experimental)")]
 public Brush MovePOCColor { get; set; }
 
 [Browsable(false)]
@@ -8887,16 +8931,16 @@ public string MovePOCColorSerialize
 }
 
 [NinjaScriptProperty]
-[Display(Name = "Move POC Line Style", Description = "Line style for move POC", Order = 9, GroupName = "19. Move Profiles (Experimental)")]
+[Display(Name = "Move POC Line Style", Description = "Line style for move POC", Order = 9, GroupName = "13. Move Profiles (Experimental)")]
 public DashStyleHelper MovePOCLineStyle { get; set; }
 
 [NinjaScriptProperty]
 [Range(1, 5)]
-[Display(Name = "Move POC Thickness", Description = "Thickness of move POC lines", Order = 10, GroupName = "19. Move Profiles (Experimental)")]
+[Display(Name = "Move POC Thickness", Description = "Thickness of move POC lines", Order = 10, GroupName = "13. Move Profiles (Experimental)")]
 public int MovePOCThickness { get; set; }
 
 [XmlIgnore]
-[Display(Name = "Move VA Lines Color", Description = "Color for move VAH/VAL lines", Order = 11, GroupName = "19. Move Profiles (Experimental)")]
+[Display(Name = "Move VA Lines Color", Description = "Color for move VAH/VAL lines", Order = 11, GroupName = "13. Move Profiles (Experimental)")]
 public Brush MoveVALinesColor { get; set; }
 
 [Browsable(false)]
@@ -8907,66 +8951,66 @@ public string MoveVALinesColorSerialize
 }
 
 [NinjaScriptProperty]
-[Display(Name = "Move VA Line Style", Description = "Line style for move VAH/VAL", Order = 12, GroupName = "19. Move Profiles (Experimental)")]
+[Display(Name = "Move VA Line Style", Description = "Line style for move VAH/VAL", Order = 12, GroupName = "13. Move Profiles (Experimental)")]
 public DashStyleHelper MoveVALineStyle { get; set; }
 
 [NinjaScriptProperty]
 [Range(1, 3)]
-[Display(Name = "Move VA Thickness", Description = "Thickness of move VA lines", Order = 13, GroupName = "19. Move Profiles (Experimental)")]
+[Display(Name = "Move VA Thickness", Description = "Thickness of move VA lines", Order = 13, GroupName = "13. Move Profiles (Experimental)")]
 public int MoveVAThickness { get; set; }
 
 [NinjaScriptProperty]
 [Range(10, 500)]
-[Display(Name = "Move Number of Volume Bars", Description = "Price levels in each move profile (higher = more detail)", Order = 14, GroupName = "19. Move Profiles (Experimental)")]
+[Display(Name = "Move Number of Volume Bars", Description = "Price levels in each move profile (higher = more detail)", Order = 14, GroupName = "13. Move Profiles (Experimental)")]
 public int MoveNumberOfVolumeBars { get; set; }
 
 [NinjaScriptProperty]
 [Range(5, 95)]
-[Display(Name = "Move Value Area %", Description = "Value Area percentage for move profiles", Order = 15, GroupName = "19. Move Profiles (Experimental)")]
+[Display(Name = "Move Value Area %", Description = "Value Area percentage for move profiles", Order = 15, GroupName = "13. Move Profiles (Experimental)")]
 public int MoveValueAreaPercentage { get; set; }
 
 [NinjaScriptProperty]
 [Range(0, 100)]
-[Display(Name = "Move VA Lines Opacity", Description = "Opacity of move VAH/VAL lines (0-100)", Order = 16, GroupName = "19. Move Profiles (Experimental)")]
+[Display(Name = "Move VA Lines Opacity", Description = "Opacity of move VAH/VAL lines (0-100)", Order = 16, GroupName = "13. Move Profiles (Experimental)")]
 public int MoveVALinesOpacity { get; set; }
 
 // ========================================
-// 17. CANDLE VOLUME PROFILES
+// CANDLE PROFILES (Group 04)
 // ========================================
 
 [NinjaScriptProperty]
-[Display(Name = "Enable Candle Profiles", Description = "Show a mini volume profile on each candle extending to the right", Order = 1, GroupName = "06. Profile - Candle")]
+[Display(Name = "Enable Candle Profiles", Description = "Show a mini volume profile on each candle extending to the right", Order = 1, GroupName = "04. Candle Profiles")]
 public bool EnableCandleProfiles { get; set; }
 
 [NinjaScriptProperty]
 [Range(5, 200)]
-[Display(Name = "Profile Width (px)", Description = "Maximum pixel width of each candle's profile histogram", Order = 2, GroupName = "06. Profile - Candle")]
+[Display(Name = "Profile Width (px)", Description = "Maximum pixel width of each candle's profile histogram", Order = 2, GroupName = "04. Candle Profiles")]
 public int CandleProfileWidth { get; set; }
 
 [NinjaScriptProperty]
 [Range(5, 100)]
-[Display(Name = "Opacity", Description = "Opacity of candle profile bars (0-100)", Order = 3, GroupName = "06. Profile - Candle")]
+[Display(Name = "Opacity", Description = "Opacity of candle profile bars (0-100)", Order = 3, GroupName = "04. Candle Profiles")]
 public int CandleProfileOpacity { get; set; }
 
 [NinjaScriptProperty]
-[Display(Name = "Volume Type", Description = "Color mode for candle profile bars", Order = 4, GroupName = "06. Profile - Candle")]
+[Display(Name = "Volume Type", Description = "Color mode for candle profile bars", Order = 4, GroupName = "04. Candle Profiles")]
 public VolumeTypeEnum CandleProfileVolumeType { get; set; }
 
 [NinjaScriptProperty]
-[Display(Name = "Show POC", Description = "Highlight the Point of Control on each candle profile", Order = 5, GroupName = "06. Profile - Candle")]
+[Display(Name = "Show POC", Description = "Highlight the Point of Control on each candle profile", Order = 5, GroupName = "04. Candle Profiles")]
 public bool CandleProfileShowPOC { get; set; }
 
 [NinjaScriptProperty]
-[Display(Name = "Show Value Area", Description = "Highlight the Value Area on each candle profile", Order = 6, GroupName = "06. Profile - Candle")]
+[Display(Name = "Show Value Area", Description = "Highlight the Value Area on each candle profile", Order = 6, GroupName = "04. Candle Profiles")]
 public bool CandleProfileShowVA { get; set; }
 
 [NinjaScriptProperty]
 [Range(10, 95)]
-[Display(Name = "Value Area %", Description = "Value Area percentage for candle profiles", Order = 7, GroupName = "06. Profile - Candle")]
+[Display(Name = "Value Area %", Description = "Value Area percentage for candle profiles", Order = 7, GroupName = "04. Candle Profiles")]
 public int CandleProfileVAPercent { get; set; }
 
 [XmlIgnore]
-[Display(Name = "Bar Color", Description = "Default color for candle profile bars", Order = 10, GroupName = "06. Profile - Candle")]
+[Display(Name = "Bar Color", Description = "Default color for candle profile bars", Order = 10, GroupName = "04. Candle Profiles")]
 public Brush CandleProfileBarColor { get; set; }
 
 [Browsable(false)]
@@ -8977,7 +9021,7 @@ public string CandleProfileBarColorSerialize
 }
 
 [XmlIgnore]
-[Display(Name = "POC Color", Description = "Color for the POC level on each candle profile", Order = 11, GroupName = "06. Profile - Candle")]
+[Display(Name = "POC Color", Description = "Color for the POC level on each candle profile", Order = 11, GroupName = "04. Candle Profiles")]
 public Brush CandlePOCColor { get; set; }
 
 [Browsable(false)]
@@ -8988,7 +9032,7 @@ public string CandlePOCColorSerialize
 }
 
 [XmlIgnore]
-[Display(Name = "Value Area Color", Description = "Color for Value Area bars on each candle profile", Order = 12, GroupName = "06. Profile - Candle")]
+[Display(Name = "Value Area Color", Description = "Color for Value Area bars on each candle profile", Order = 12, GroupName = "04. Candle Profiles")]
 public Brush CandleVAColor { get; set; }
 
 [Browsable(false)]
@@ -8999,7 +9043,7 @@ public string CandleVAColorSerialize
 }
 
 [XmlIgnore]
-[Display(Name = "Bullish Color", Description = "Color for bullish candle profile bars (used with Bullish/Both volume type)", Order = 13, GroupName = "06. Profile - Candle")]
+[Display(Name = "Bullish Color", Description = "Color for bullish candle profile bars (used with Bullish/Both volume type)", Order = 13, GroupName = "04. Candle Profiles")]
 public Brush CandleProfileBullColor { get; set; }
 
 [Browsable(false)]
@@ -9010,7 +9054,7 @@ public string CandleProfileBullColorSerialize
 }
 
 [XmlIgnore]
-[Display(Name = "Bearish Color", Description = "Color for bearish candle profile bars (used with Bearish/Both volume type)", Order = 14, GroupName = "06. Profile - Candle")]
+[Display(Name = "Bearish Color", Description = "Color for bearish candle profile bars (used with Bearish/Both volume type)", Order = 14, GroupName = "04. Candle Profiles")]
 public Brush CandleProfileBearColor { get; set; }
 
 [Browsable(false)]
@@ -9021,11 +9065,11 @@ public string CandleProfileBearColorSerialize
 }
 
 [NinjaScriptProperty]
-[Display(Name = "Show VA Lines", Description = "Draw VAH and VAL lines across each candle profile", Order = 20, GroupName = "06. Profile - Candle")]
+[Display(Name = "Show VA Lines", Description = "Draw VAH and VAL lines across each candle profile", Order = 20, GroupName = "04. Candle Profiles")]
 public bool CandleProfileShowVALines { get; set; }
 
 [XmlIgnore]
-[Display(Name = "VA Lines Color", Description = "Color for VAH/VAL lines on candle profiles", Order = 21, GroupName = "06. Profile - Candle")]
+[Display(Name = "VA Lines Color", Description = "Color for VAH/VAL lines on candle profiles", Order = 21, GroupName = "04. Candle Profiles")]
 public Brush CandleVALinesColor { get; set; }
 
 [Browsable(false)]
@@ -9037,14 +9081,114 @@ public string CandleVALinesColorSerialize
 
 [NinjaScriptProperty]
 [Range(1, 5)]
-[Display(Name = "VA Lines Thickness", Description = "Thickness of VAH/VAL lines", Order = 22, GroupName = "06. Profile - Candle")]
+[Display(Name = "VA Lines Thickness", Description = "Thickness of VAH/VAL lines", Order = 22, GroupName = "04. Candle Profiles")]
 public int CandleVALinesThickness { get; set; }
 
 [NinjaScriptProperty]
 [Range(10, 100)]
-[Display(Name = "VA Lines Opacity", Description = "Opacity of VAH/VAL lines (0-100)", Order = 23, GroupName = "06. Profile - Candle")]
+[Display(Name = "VA Lines Opacity", Description = "Opacity of VAH/VAL lines (0-100)", Order = 23, GroupName = "04. Candle Profiles")]
 public int CandleVALinesOpacity { get; set; }
 		
+
+        // ============================================
+        // SHARED LINE STYLE: PREVIOUS DAY LEVELS
+        // ============================================
+        
+        [NinjaScriptProperty]
+        [Display(Name = "Use Individual Level Styles", Description = "When disabled, all Previous Day levels use the shared style below. When enabled, each level (POC, VAH, VAL, High, Low) uses its own color/style/thickness.", Order = 0, GroupName = "08. Previous Day Levels")]
+        public bool PdUseIndividualStyles { get; set; }
+        
+        [XmlIgnore]
+        [Display(Name = "Shared Line Color", Description = "Default color for all Previous Day levels (when Use Individual Styles is off)", Order = 30, GroupName = "08. Previous Day Levels")]
+        public Brush PdSharedColor { get; set; }
+        
+        [Browsable(false)]
+        public string PdSharedColorSerialize
+        {
+            get { return Serialize.BrushToString(PdSharedColor); }
+            set { PdSharedColor = Serialize.StringToBrush(value); }
+        }
+        
+        [NinjaScriptProperty]
+        [Display(Name = "Shared Line Style", Description = "Default line style for all Previous Day levels", Order = 31, GroupName = "08. Previous Day Levels")]
+        public DashStyleHelper PdSharedLineStyle { get; set; }
+        
+        [NinjaScriptProperty]
+        [Range(1, 10)]
+        [Display(Name = "Shared Thickness", Description = "Default thickness for all Previous Day levels", Order = 32, GroupName = "08. Previous Day Levels")]
+        public int PdSharedThickness { get; set; }
+        
+        [NinjaScriptProperty]
+        [Range(0, 100)]
+        [Display(Name = "Shared Opacity", Description = "Default opacity for all Previous Day levels", Order = 33, GroupName = "08. Previous Day Levels")]
+        public int PdSharedOpacity { get; set; }
+        
+        // ============================================
+        // SHARED LINE STYLE: PREVIOUS WEEK LEVELS
+        // ============================================
+        
+        [NinjaScriptProperty]
+        [Display(Name = "Use Individual Level Styles", Description = "When disabled, all Previous Week levels use the shared style below. When enabled, each level uses its own color/style/thickness.", Order = 0, GroupName = "09. Previous Week Levels")]
+        public bool PwUseIndividualStyles { get; set; }
+        
+        [XmlIgnore]
+        [Display(Name = "Shared Line Color", Description = "Default color for all Previous Week levels (when Use Individual Styles is off)", Order = 30, GroupName = "09. Previous Week Levels")]
+        public Brush PwSharedColor { get; set; }
+        
+        [Browsable(false)]
+        public string PwSharedColorSerialize
+        {
+            get { return Serialize.BrushToString(PwSharedColor); }
+            set { PwSharedColor = Serialize.StringToBrush(value); }
+        }
+        
+        [NinjaScriptProperty]
+        [Display(Name = "Shared Line Style", Description = "Default line style for all Previous Week levels", Order = 31, GroupName = "09. Previous Week Levels")]
+        public DashStyleHelper PwSharedLineStyle { get; set; }
+        
+        [NinjaScriptProperty]
+        [Range(1, 10)]
+        [Display(Name = "Shared Thickness", Description = "Default thickness for all Previous Week levels", Order = 32, GroupName = "09. Previous Week Levels")]
+        public int PwSharedThickness { get; set; }
+        
+        [NinjaScriptProperty]
+        [Range(0, 100)]
+        [Display(Name = "Shared Opacity", Description = "Default opacity for all Previous Week levels", Order = 33, GroupName = "09. Previous Week Levels")]
+        public int PwSharedOpacity { get; set; }
+        
+        // ============================================
+        // SHARED LINE STYLE: OVERNIGHT LEVELS
+        // ============================================
+        
+        [NinjaScriptProperty]
+        [Display(Name = "Use Individual Level Styles", Description = "When disabled, all Overnight levels use the shared style below. When enabled, each level uses its own color/style/thickness.", Order = 0, GroupName = "10. Overnight Levels")]
+        public bool OnUseIndividualStyles { get; set; }
+        
+        [XmlIgnore]
+        [Display(Name = "Shared Line Color", Description = "Default color for all Overnight levels (when Use Individual Styles is off)", Order = 30, GroupName = "10. Overnight Levels")]
+        public Brush OnSharedColor { get; set; }
+        
+        [Browsable(false)]
+        public string OnSharedColorSerialize
+        {
+            get { return Serialize.BrushToString(OnSharedColor); }
+            set { OnSharedColor = Serialize.StringToBrush(value); }
+        }
+        
+        [NinjaScriptProperty]
+        [Display(Name = "Shared Line Style", Description = "Default line style for all Overnight levels", Order = 31, GroupName = "10. Overnight Levels")]
+        public DashStyleHelper OnSharedLineStyle { get; set; }
+        
+        [NinjaScriptProperty]
+        [Range(1, 10)]
+        [Display(Name = "Shared Thickness", Description = "Default thickness for all Overnight levels", Order = 32, GroupName = "10. Overnight Levels")]
+        public int OnSharedThickness { get; set; }
+        
+        [NinjaScriptProperty]
+        [Range(0, 100)]
+        [Display(Name = "Shared Opacity", Description = "Default opacity for all Overnight levels", Order = 33, GroupName = "10. Overnight Levels")]
+        public int OnSharedOpacity { get; set; }
+
 		#endregion
 		
 		#region DOM Rendering
@@ -9822,19 +9966,19 @@ namespace NinjaTrader.NinjaScript.Indicators
 {
 	public partial class Indicator : NinjaTrader.Gui.NinjaScript.IndicatorRenderBase
 	{
-		private RedTailVolumeProfile_V2[] cacheRedTailVolumeProfile_V2;
-		public RedTailVolumeProfile_V2 RedTailVolumeProfile_V2(ProfileModeEnum profileMode, ProfileAlignment alignment, int weeksLookback, int sessionsLookback, int monthsLookback, CompositeDateRangeType compositeRangeType, int compositeDaysBack, int compositeWeeksBack, int compositeMonthsBack, DateTime compositeCustomStartDate, DateTime compositeCustomEndDate, bool useCustomSessionTimes, int sessionStartTime, int sessionEndTime, int numberOfVolumeBars, int barThickness, int profileWidth, VolumeTypeEnum volumeType, int barOpacity, bool displayPoC, int poCLineThickness, DashStyleHelper poCLineStyle, int poCLineOpacity, bool extendPoCLine, bool displayValueArea, int valueAreaPercentage, bool displayValueAreaLines, int valueAreaLinesThickness, DashStyleHelper valueAreaLineStyle, int valueAreaLinesOpacity, bool extendValueAreaLines, bool enableDebugPrints, bool displayPreviousDayPOC, DashStyleHelper pdPOCLineStyle, int pdPOCThickness, int pdPOCOpacity, bool displayPreviousDayVAH, DashStyleHelper pdVAHLineStyle, int pdVAHThickness, int pdVAHOpacity, bool displayPreviousDayVAL, DashStyleHelper pdVALLineStyle, int pdVALThickness, int pdVALOpacity, bool displayPreviousDayHigh, DashStyleHelper pdHighLineStyle, int pdHighThickness, int pdHighOpacity, bool displayPreviousDayLow, DashStyleHelper pdLowLineStyle, int pdLowThickness, int pdLowOpacity, bool displayPreviousWeekPOC, DashStyleHelper pwPOCLineStyle, int pwPOCThickness, int pwPOCOpacity, bool displayPreviousWeekVAH, DashStyleHelper pwVAHLineStyle, int pwVAHThickness, int pwVAHOpacity, bool displayPreviousWeekVAL, DashStyleHelper pwVALLineStyle, int pwVALThickness, int pwVALOpacity, bool displayPreviousWeekHigh, DashStyleHelper pwHighLineStyle, int pwHighThickness, int pwHighOpacity, bool displayPreviousWeekLow, DashStyleHelper pwLowLineStyle, int pwLowThickness, int pwLowOpacity, bool displayOvernightPOC, DashStyleHelper overnightPOCLineStyle, int overnightPOCThickness, int overnightPOCOpacity, bool displayOvernightVAH, DashStyleHelper overnightVAHLineStyle, int overnightVAHThickness, int overnightVAHOpacity, bool displayOvernightVAL, DashStyleHelper overnightVALLineStyle, int overnightVALThickness, int overnightVALOpacity, bool displayOvernightHigh, DashStyleHelper overnightHighLineStyle, int overnightHighThickness, int overnightHighOpacity, bool displayOvernightLow, DashStyleHelper overnightLowLineStyle, int overnightLowThickness, int overnightLowOpacity, int overnightStartTime, int overnightEndTime, DashStyleHelper nakedPOCLineStyle, int nakedPOCThickness, int nakedPOCOpacity, DashStyleHelper nakedVAHLineStyle, int nakedVAHThickness, int nakedVAHOpacity, DashStyleHelper nakedVALLineStyle, int nakedVALThickness, int nakedVALOpacity, DashStyleHelper weeklyNakedPOCLineStyle, int weeklyNakedPOCThickness, int weeklyNakedPOCOpacity, DashStyleHelper weeklyNakedVAHLineStyle, int weeklyNakedVAHThickness, int weeklyNakedVAHOpacity, DashStyleHelper weeklyNakedVALLineStyle, int weeklyNakedVALThickness, int weeklyNakedVALOpacity, bool displayNakedLevels, int maxNakedLevelsToDisplay, bool displayWeeklyNakedLevels, int maxWeeklyNakedLevelsToDisplay, bool keepFilledLevelsAfterSession, int removeAfterTouchCount, bool keepFilledWeeklyLevelsAfterWeek, int removeWeeklyAfterTouchCount, bool showTouchCountInLabels, bool britishDateFormat, int previousDayLineWidth, bool showPriceValuesInLabels, int labelFontSize, bool enableDualProfileMode, int weeklyProfileWidth, int sessionProfileWidth, int profileGap, bool useCustomDailySessionTimes, int dailySessionStartTime, int dailySessionEndTime, SessionProfileStyleEnum sessionProfileStyle, int sessionOutlineSmoothness, int weeklyNumberOfVolumeBars, int weeklyBarThickness, VolumeTypeEnum weeklyVolumeType, int weeklyBarOpacity, bool weeklyDisplayPoC, int weeklyPoCLineThickness, int weeklyPoCLineOpacity, bool weeklyDisplayValueArea, int weeklyValueAreaPercentage, bool weeklyDisplayValueAreaLines, int weeklyValueAreaLinesThickness, int weeklyValueAreaLinesOpacity, bool weeklyExtendPoCLine, bool weeklyExtendValueAreaLines, int sessionNumberOfVolumeBars, int sessionBarThickness, VolumeTypeEnum sessionVolumeType, int sessionBarOpacity, bool sessionDisplayPoC, int sessionPoCLineThickness, int sessionPoCLineOpacity, bool sessionDisplayValueArea, int sessionValueAreaPercentage, bool sessionDisplayValueAreaLines, int sessionValueAreaLinesThickness, int sessionValueAreaLinesOpacity, bool sessionExtendPoCLine, bool sessionExtendValueAreaLines, bool enableGradientFill, int gradientIntensity, bool displayLVN, int lVNNumberOfRows, int lVNDetectionPercent, bool showAdjacentLVNNodes, int lVNFillOpacity, int lVNBorderOpacity, bool enableDomdicator, int domdicatorWidth, int domdicatorGap, int domMaxRightExtension, bool showDOMVolumeText, float domMaxTextSize, float domMinTextSize, float domHistoricalOpacity, bool showHistoricalOrders, int liveOrderTickThreshold, float domLiveOpacity, int minimumOrdersToStart, bool enableAlerts, int alertDistanceTicks, bool alertOnPreviousDayLevels, bool alertOnPreviousWeekLevels, bool alertOnNakedLevels, bool alertOnWeeklyNakedLevels, bool alertOnOvernightLevels, bool playAlertSound, string alertSoundFile, bool rearmAlertsOnNewSession, bool enableMoveProfiles, int consolidationBars, int breakoutThresholdTicks, int minimumMoveSizeTicks, int maxMovesToDisplay, int moveProfileOpacity, DashStyleHelper movePOCLineStyle, int movePOCThickness, DashStyleHelper moveVALineStyle, int moveVAThickness, int moveNumberOfVolumeBars, int moveValueAreaPercentage, int moveVALinesOpacity, bool enableCandleProfiles, int candleProfileWidth, int candleProfileOpacity, VolumeTypeEnum candleProfileVolumeType, bool candleProfileShowPOC, bool candleProfileShowVA, int candleProfileVAPercent, bool candleProfileShowVALines, int candleVALinesThickness, int candleVALinesOpacity)
+		private RedTail.RedTailVolumeProfile[] cacheRedTailVolumeProfile;
+		public RedTail.RedTailVolumeProfile RedTailVolumeProfile(ProfileModeEnum profileMode, ProfileAlignment alignment, int weeksLookback, int sessionsLookback, int monthsLookback, CompositeDateRangeType compositeRangeType, int compositeDaysBack, int compositeWeeksBack, int compositeMonthsBack, DateTime compositeCustomStartDate, DateTime compositeCustomEndDate, bool useCustomSessionTimes, int sessionStartTime, int sessionEndTime, int numberOfVolumeBars, int barThickness, int profileWidth, VolumeTypeEnum volumeType, int barOpacity, bool displayPoC, int poCLineThickness, DashStyleHelper poCLineStyle, int poCLineOpacity, bool extendPoCLine, bool displayValueArea, int valueAreaPercentage, bool displayValueAreaLines, int valueAreaLinesThickness, DashStyleHelper valueAreaLineStyle, int valueAreaLinesOpacity, bool extendValueAreaLines, bool enableDebugPrints, bool displayPreviousDayPOC, DashStyleHelper pdPOCLineStyle, int pdPOCThickness, int pdPOCOpacity, bool displayPreviousDayVAH, DashStyleHelper pdVAHLineStyle, int pdVAHThickness, int pdVAHOpacity, bool displayPreviousDayVAL, DashStyleHelper pdVALLineStyle, int pdVALThickness, int pdVALOpacity, bool displayPreviousDayHigh, DashStyleHelper pdHighLineStyle, int pdHighThickness, int pdHighOpacity, bool displayPreviousDayLow, DashStyleHelper pdLowLineStyle, int pdLowThickness, int pdLowOpacity, bool displayPreviousWeekPOC, DashStyleHelper pwPOCLineStyle, int pwPOCThickness, int pwPOCOpacity, bool displayPreviousWeekVAH, DashStyleHelper pwVAHLineStyle, int pwVAHThickness, int pwVAHOpacity, bool displayPreviousWeekVAL, DashStyleHelper pwVALLineStyle, int pwVALThickness, int pwVALOpacity, bool displayPreviousWeekHigh, DashStyleHelper pwHighLineStyle, int pwHighThickness, int pwHighOpacity, bool displayPreviousWeekLow, DashStyleHelper pwLowLineStyle, int pwLowThickness, int pwLowOpacity, bool displayOvernightPOC, DashStyleHelper overnightPOCLineStyle, int overnightPOCThickness, int overnightPOCOpacity, bool displayOvernightVAH, DashStyleHelper overnightVAHLineStyle, int overnightVAHThickness, int overnightVAHOpacity, bool displayOvernightVAL, DashStyleHelper overnightVALLineStyle, int overnightVALThickness, int overnightVALOpacity, bool displayOvernightHigh, DashStyleHelper overnightHighLineStyle, int overnightHighThickness, int overnightHighOpacity, bool displayOvernightLow, DashStyleHelper overnightLowLineStyle, int overnightLowThickness, int overnightLowOpacity, int overnightStartTime, int overnightEndTime, DashStyleHelper nakedPOCLineStyle, int nakedPOCThickness, int nakedPOCOpacity, DashStyleHelper nakedVAHLineStyle, int nakedVAHThickness, int nakedVAHOpacity, DashStyleHelper nakedVALLineStyle, int nakedVALThickness, int nakedVALOpacity, DashStyleHelper weeklyNakedPOCLineStyle, int weeklyNakedPOCThickness, int weeklyNakedPOCOpacity, DashStyleHelper weeklyNakedVAHLineStyle, int weeklyNakedVAHThickness, int weeklyNakedVAHOpacity, DashStyleHelper weeklyNakedVALLineStyle, int weeklyNakedVALThickness, int weeklyNakedVALOpacity, bool displayNakedLevels, int maxNakedLevelsToDisplay, bool displayWeeklyNakedLevels, int maxWeeklyNakedLevelsToDisplay, bool keepFilledLevelsAfterSession, int removeAfterTouchCount, bool keepFilledWeeklyLevelsAfterWeek, int removeWeeklyAfterTouchCount, bool showTouchCountInLabels, bool britishDateFormat, int previousDayLineWidth, bool showPriceValuesInLabels, int labelFontSize, bool enableDualProfileMode, int weeklyProfileWidth, int sessionProfileWidth, int profileGap, bool useCustomDailySessionTimes, int dailySessionStartTime, int dailySessionEndTime, SessionProfileStyleEnum sessionProfileStyle, int sessionOutlineSmoothness, int weeklyNumberOfVolumeBars, int weeklyBarThickness, VolumeTypeEnum weeklyVolumeType, int weeklyBarOpacity, bool weeklyDisplayPoC, int weeklyPoCLineThickness, int weeklyPoCLineOpacity, bool weeklyDisplayValueArea, int weeklyValueAreaPercentage, bool weeklyDisplayValueAreaLines, int weeklyValueAreaLinesThickness, int weeklyValueAreaLinesOpacity, bool weeklyExtendPoCLine, bool weeklyExtendValueAreaLines, int sessionNumberOfVolumeBars, int sessionBarThickness, VolumeTypeEnum sessionVolumeType, int sessionBarOpacity, bool sessionDisplayPoC, int sessionPoCLineThickness, int sessionPoCLineOpacity, bool sessionDisplayValueArea, int sessionValueAreaPercentage, bool sessionDisplayValueAreaLines, int sessionValueAreaLinesThickness, int sessionValueAreaLinesOpacity, bool sessionExtendPoCLine, bool sessionExtendValueAreaLines, bool enableGradientFill, int gradientIntensity, bool displayLVN, int lVNNumberOfRows, int lVNDetectionPercent, bool showAdjacentLVNNodes, int lVNFillOpacity, int lVNBorderOpacity, bool enableDomdicator, int domdicatorWidth, int domdicatorGap, int domMaxRightExtension, bool showDOMVolumeText, float domMaxTextSize, float domMinTextSize, float domHistoricalOpacity, bool showHistoricalOrders, int liveOrderTickThreshold, float domLiveOpacity, int minimumOrdersToStart, bool enableAlerts, int alertDistanceTicks, bool alertOnPreviousDayLevels, bool alertOnPreviousWeekLevels, bool alertOnNakedLevels, bool alertOnWeeklyNakedLevels, bool alertOnOvernightLevels, bool playAlertSound, string alertSoundFile, bool rearmAlertsOnNewSession, bool enableMoveProfiles, int consolidationBars, int breakoutThresholdTicks, int minimumMoveSizeTicks, int maxMovesToDisplay, int moveProfileOpacity, DashStyleHelper movePOCLineStyle, int movePOCThickness, DashStyleHelper moveVALineStyle, int moveVAThickness, int moveNumberOfVolumeBars, int moveValueAreaPercentage, int moveVALinesOpacity, bool enableCandleProfiles, int candleProfileWidth, int candleProfileOpacity, VolumeTypeEnum candleProfileVolumeType, bool candleProfileShowPOC, bool candleProfileShowVA, int candleProfileVAPercent, bool candleProfileShowVALines, int candleVALinesThickness, int candleVALinesOpacity, bool pdUseIndividualStyles, DashStyleHelper pdSharedLineStyle, int pdSharedThickness, int pdSharedOpacity, bool pwUseIndividualStyles, DashStyleHelper pwSharedLineStyle, int pwSharedThickness, int pwSharedOpacity, bool onUseIndividualStyles, DashStyleHelper onSharedLineStyle, int onSharedThickness, int onSharedOpacity)
 		{
-			return RedTailVolumeProfile_V2(Input, profileMode, alignment, weeksLookback, sessionsLookback, monthsLookback, compositeRangeType, compositeDaysBack, compositeWeeksBack, compositeMonthsBack, compositeCustomStartDate, compositeCustomEndDate, useCustomSessionTimes, sessionStartTime, sessionEndTime, numberOfVolumeBars, barThickness, profileWidth, volumeType, barOpacity, displayPoC, poCLineThickness, poCLineStyle, poCLineOpacity, extendPoCLine, displayValueArea, valueAreaPercentage, displayValueAreaLines, valueAreaLinesThickness, valueAreaLineStyle, valueAreaLinesOpacity, extendValueAreaLines, enableDebugPrints, displayPreviousDayPOC, pdPOCLineStyle, pdPOCThickness, pdPOCOpacity, displayPreviousDayVAH, pdVAHLineStyle, pdVAHThickness, pdVAHOpacity, displayPreviousDayVAL, pdVALLineStyle, pdVALThickness, pdVALOpacity, displayPreviousDayHigh, pdHighLineStyle, pdHighThickness, pdHighOpacity, displayPreviousDayLow, pdLowLineStyle, pdLowThickness, pdLowOpacity, displayPreviousWeekPOC, pwPOCLineStyle, pwPOCThickness, pwPOCOpacity, displayPreviousWeekVAH, pwVAHLineStyle, pwVAHThickness, pwVAHOpacity, displayPreviousWeekVAL, pwVALLineStyle, pwVALThickness, pwVALOpacity, displayPreviousWeekHigh, pwHighLineStyle, pwHighThickness, pwHighOpacity, displayPreviousWeekLow, pwLowLineStyle, pwLowThickness, pwLowOpacity, displayOvernightPOC, overnightPOCLineStyle, overnightPOCThickness, overnightPOCOpacity, displayOvernightVAH, overnightVAHLineStyle, overnightVAHThickness, overnightVAHOpacity, displayOvernightVAL, overnightVALLineStyle, overnightVALThickness, overnightVALOpacity, displayOvernightHigh, overnightHighLineStyle, overnightHighThickness, overnightHighOpacity, displayOvernightLow, overnightLowLineStyle, overnightLowThickness, overnightLowOpacity, overnightStartTime, overnightEndTime, nakedPOCLineStyle, nakedPOCThickness, nakedPOCOpacity, nakedVAHLineStyle, nakedVAHThickness, nakedVAHOpacity, nakedVALLineStyle, nakedVALThickness, nakedVALOpacity, weeklyNakedPOCLineStyle, weeklyNakedPOCThickness, weeklyNakedPOCOpacity, weeklyNakedVAHLineStyle, weeklyNakedVAHThickness, weeklyNakedVAHOpacity, weeklyNakedVALLineStyle, weeklyNakedVALThickness, weeklyNakedVALOpacity, displayNakedLevels, maxNakedLevelsToDisplay, displayWeeklyNakedLevels, maxWeeklyNakedLevelsToDisplay, keepFilledLevelsAfterSession, removeAfterTouchCount, keepFilledWeeklyLevelsAfterWeek, removeWeeklyAfterTouchCount, showTouchCountInLabels, britishDateFormat, previousDayLineWidth, showPriceValuesInLabels, labelFontSize, enableDualProfileMode, weeklyProfileWidth, sessionProfileWidth, profileGap, useCustomDailySessionTimes, dailySessionStartTime, dailySessionEndTime, sessionProfileStyle, sessionOutlineSmoothness, weeklyNumberOfVolumeBars, weeklyBarThickness, weeklyVolumeType, weeklyBarOpacity, weeklyDisplayPoC, weeklyPoCLineThickness, weeklyPoCLineOpacity, weeklyDisplayValueArea, weeklyValueAreaPercentage, weeklyDisplayValueAreaLines, weeklyValueAreaLinesThickness, weeklyValueAreaLinesOpacity, weeklyExtendPoCLine, weeklyExtendValueAreaLines, sessionNumberOfVolumeBars, sessionBarThickness, sessionVolumeType, sessionBarOpacity, sessionDisplayPoC, sessionPoCLineThickness, sessionPoCLineOpacity, sessionDisplayValueArea, sessionValueAreaPercentage, sessionDisplayValueAreaLines, sessionValueAreaLinesThickness, sessionValueAreaLinesOpacity, sessionExtendPoCLine, sessionExtendValueAreaLines, enableGradientFill, gradientIntensity, displayLVN, lVNNumberOfRows, lVNDetectionPercent, showAdjacentLVNNodes, lVNFillOpacity, lVNBorderOpacity, enableDomdicator, domdicatorWidth, domdicatorGap, domMaxRightExtension, showDOMVolumeText, domMaxTextSize, domMinTextSize, domHistoricalOpacity, showHistoricalOrders, liveOrderTickThreshold, domLiveOpacity, minimumOrdersToStart, enableAlerts, alertDistanceTicks, alertOnPreviousDayLevels, alertOnPreviousWeekLevels, alertOnNakedLevels, alertOnWeeklyNakedLevels, alertOnOvernightLevels, playAlertSound, alertSoundFile, rearmAlertsOnNewSession, enableMoveProfiles, consolidationBars, breakoutThresholdTicks, minimumMoveSizeTicks, maxMovesToDisplay, moveProfileOpacity, movePOCLineStyle, movePOCThickness, moveVALineStyle, moveVAThickness, moveNumberOfVolumeBars, moveValueAreaPercentage, moveVALinesOpacity, enableCandleProfiles, candleProfileWidth, candleProfileOpacity, candleProfileVolumeType, candleProfileShowPOC, candleProfileShowVA, candleProfileVAPercent, candleProfileShowVALines, candleVALinesThickness, candleVALinesOpacity);
+			return RedTailVolumeProfile(Input, profileMode, alignment, weeksLookback, sessionsLookback, monthsLookback, compositeRangeType, compositeDaysBack, compositeWeeksBack, compositeMonthsBack, compositeCustomStartDate, compositeCustomEndDate, useCustomSessionTimes, sessionStartTime, sessionEndTime, numberOfVolumeBars, barThickness, profileWidth, volumeType, barOpacity, displayPoC, poCLineThickness, poCLineStyle, poCLineOpacity, extendPoCLine, displayValueArea, valueAreaPercentage, displayValueAreaLines, valueAreaLinesThickness, valueAreaLineStyle, valueAreaLinesOpacity, extendValueAreaLines, enableDebugPrints, displayPreviousDayPOC, pdPOCLineStyle, pdPOCThickness, pdPOCOpacity, displayPreviousDayVAH, pdVAHLineStyle, pdVAHThickness, pdVAHOpacity, displayPreviousDayVAL, pdVALLineStyle, pdVALThickness, pdVALOpacity, displayPreviousDayHigh, pdHighLineStyle, pdHighThickness, pdHighOpacity, displayPreviousDayLow, pdLowLineStyle, pdLowThickness, pdLowOpacity, displayPreviousWeekPOC, pwPOCLineStyle, pwPOCThickness, pwPOCOpacity, displayPreviousWeekVAH, pwVAHLineStyle, pwVAHThickness, pwVAHOpacity, displayPreviousWeekVAL, pwVALLineStyle, pwVALThickness, pwVALOpacity, displayPreviousWeekHigh, pwHighLineStyle, pwHighThickness, pwHighOpacity, displayPreviousWeekLow, pwLowLineStyle, pwLowThickness, pwLowOpacity, displayOvernightPOC, overnightPOCLineStyle, overnightPOCThickness, overnightPOCOpacity, displayOvernightVAH, overnightVAHLineStyle, overnightVAHThickness, overnightVAHOpacity, displayOvernightVAL, overnightVALLineStyle, overnightVALThickness, overnightVALOpacity, displayOvernightHigh, overnightHighLineStyle, overnightHighThickness, overnightHighOpacity, displayOvernightLow, overnightLowLineStyle, overnightLowThickness, overnightLowOpacity, overnightStartTime, overnightEndTime, nakedPOCLineStyle, nakedPOCThickness, nakedPOCOpacity, nakedVAHLineStyle, nakedVAHThickness, nakedVAHOpacity, nakedVALLineStyle, nakedVALThickness, nakedVALOpacity, weeklyNakedPOCLineStyle, weeklyNakedPOCThickness, weeklyNakedPOCOpacity, weeklyNakedVAHLineStyle, weeklyNakedVAHThickness, weeklyNakedVAHOpacity, weeklyNakedVALLineStyle, weeklyNakedVALThickness, weeklyNakedVALOpacity, displayNakedLevels, maxNakedLevelsToDisplay, displayWeeklyNakedLevels, maxWeeklyNakedLevelsToDisplay, keepFilledLevelsAfterSession, removeAfterTouchCount, keepFilledWeeklyLevelsAfterWeek, removeWeeklyAfterTouchCount, showTouchCountInLabels, britishDateFormat, previousDayLineWidth, showPriceValuesInLabels, labelFontSize, enableDualProfileMode, weeklyProfileWidth, sessionProfileWidth, profileGap, useCustomDailySessionTimes, dailySessionStartTime, dailySessionEndTime, sessionProfileStyle, sessionOutlineSmoothness, weeklyNumberOfVolumeBars, weeklyBarThickness, weeklyVolumeType, weeklyBarOpacity, weeklyDisplayPoC, weeklyPoCLineThickness, weeklyPoCLineOpacity, weeklyDisplayValueArea, weeklyValueAreaPercentage, weeklyDisplayValueAreaLines, weeklyValueAreaLinesThickness, weeklyValueAreaLinesOpacity, weeklyExtendPoCLine, weeklyExtendValueAreaLines, sessionNumberOfVolumeBars, sessionBarThickness, sessionVolumeType, sessionBarOpacity, sessionDisplayPoC, sessionPoCLineThickness, sessionPoCLineOpacity, sessionDisplayValueArea, sessionValueAreaPercentage, sessionDisplayValueAreaLines, sessionValueAreaLinesThickness, sessionValueAreaLinesOpacity, sessionExtendPoCLine, sessionExtendValueAreaLines, enableGradientFill, gradientIntensity, displayLVN, lVNNumberOfRows, lVNDetectionPercent, showAdjacentLVNNodes, lVNFillOpacity, lVNBorderOpacity, enableDomdicator, domdicatorWidth, domdicatorGap, domMaxRightExtension, showDOMVolumeText, domMaxTextSize, domMinTextSize, domHistoricalOpacity, showHistoricalOrders, liveOrderTickThreshold, domLiveOpacity, minimumOrdersToStart, enableAlerts, alertDistanceTicks, alertOnPreviousDayLevels, alertOnPreviousWeekLevels, alertOnNakedLevels, alertOnWeeklyNakedLevels, alertOnOvernightLevels, playAlertSound, alertSoundFile, rearmAlertsOnNewSession, enableMoveProfiles, consolidationBars, breakoutThresholdTicks, minimumMoveSizeTicks, maxMovesToDisplay, moveProfileOpacity, movePOCLineStyle, movePOCThickness, moveVALineStyle, moveVAThickness, moveNumberOfVolumeBars, moveValueAreaPercentage, moveVALinesOpacity, enableCandleProfiles, candleProfileWidth, candleProfileOpacity, candleProfileVolumeType, candleProfileShowPOC, candleProfileShowVA, candleProfileVAPercent, candleProfileShowVALines, candleVALinesThickness, candleVALinesOpacity, pdUseIndividualStyles, pdSharedLineStyle, pdSharedThickness, pdSharedOpacity, pwUseIndividualStyles, pwSharedLineStyle, pwSharedThickness, pwSharedOpacity, onUseIndividualStyles, onSharedLineStyle, onSharedThickness, onSharedOpacity);
 		}
 
-		public RedTailVolumeProfile_V2 RedTailVolumeProfile_V2(ISeries<double> input, ProfileModeEnum profileMode, ProfileAlignment alignment, int weeksLookback, int sessionsLookback, int monthsLookback, CompositeDateRangeType compositeRangeType, int compositeDaysBack, int compositeWeeksBack, int compositeMonthsBack, DateTime compositeCustomStartDate, DateTime compositeCustomEndDate, bool useCustomSessionTimes, int sessionStartTime, int sessionEndTime, int numberOfVolumeBars, int barThickness, int profileWidth, VolumeTypeEnum volumeType, int barOpacity, bool displayPoC, int poCLineThickness, DashStyleHelper poCLineStyle, int poCLineOpacity, bool extendPoCLine, bool displayValueArea, int valueAreaPercentage, bool displayValueAreaLines, int valueAreaLinesThickness, DashStyleHelper valueAreaLineStyle, int valueAreaLinesOpacity, bool extendValueAreaLines, bool enableDebugPrints, bool displayPreviousDayPOC, DashStyleHelper pdPOCLineStyle, int pdPOCThickness, int pdPOCOpacity, bool displayPreviousDayVAH, DashStyleHelper pdVAHLineStyle, int pdVAHThickness, int pdVAHOpacity, bool displayPreviousDayVAL, DashStyleHelper pdVALLineStyle, int pdVALThickness, int pdVALOpacity, bool displayPreviousDayHigh, DashStyleHelper pdHighLineStyle, int pdHighThickness, int pdHighOpacity, bool displayPreviousDayLow, DashStyleHelper pdLowLineStyle, int pdLowThickness, int pdLowOpacity, bool displayPreviousWeekPOC, DashStyleHelper pwPOCLineStyle, int pwPOCThickness, int pwPOCOpacity, bool displayPreviousWeekVAH, DashStyleHelper pwVAHLineStyle, int pwVAHThickness, int pwVAHOpacity, bool displayPreviousWeekVAL, DashStyleHelper pwVALLineStyle, int pwVALThickness, int pwVALOpacity, bool displayPreviousWeekHigh, DashStyleHelper pwHighLineStyle, int pwHighThickness, int pwHighOpacity, bool displayPreviousWeekLow, DashStyleHelper pwLowLineStyle, int pwLowThickness, int pwLowOpacity, bool displayOvernightPOC, DashStyleHelper overnightPOCLineStyle, int overnightPOCThickness, int overnightPOCOpacity, bool displayOvernightVAH, DashStyleHelper overnightVAHLineStyle, int overnightVAHThickness, int overnightVAHOpacity, bool displayOvernightVAL, DashStyleHelper overnightVALLineStyle, int overnightVALThickness, int overnightVALOpacity, bool displayOvernightHigh, DashStyleHelper overnightHighLineStyle, int overnightHighThickness, int overnightHighOpacity, bool displayOvernightLow, DashStyleHelper overnightLowLineStyle, int overnightLowThickness, int overnightLowOpacity, int overnightStartTime, int overnightEndTime, DashStyleHelper nakedPOCLineStyle, int nakedPOCThickness, int nakedPOCOpacity, DashStyleHelper nakedVAHLineStyle, int nakedVAHThickness, int nakedVAHOpacity, DashStyleHelper nakedVALLineStyle, int nakedVALThickness, int nakedVALOpacity, DashStyleHelper weeklyNakedPOCLineStyle, int weeklyNakedPOCThickness, int weeklyNakedPOCOpacity, DashStyleHelper weeklyNakedVAHLineStyle, int weeklyNakedVAHThickness, int weeklyNakedVAHOpacity, DashStyleHelper weeklyNakedVALLineStyle, int weeklyNakedVALThickness, int weeklyNakedVALOpacity, bool displayNakedLevels, int maxNakedLevelsToDisplay, bool displayWeeklyNakedLevels, int maxWeeklyNakedLevelsToDisplay, bool keepFilledLevelsAfterSession, int removeAfterTouchCount, bool keepFilledWeeklyLevelsAfterWeek, int removeWeeklyAfterTouchCount, bool showTouchCountInLabels, bool britishDateFormat, int previousDayLineWidth, bool showPriceValuesInLabels, int labelFontSize, bool enableDualProfileMode, int weeklyProfileWidth, int sessionProfileWidth, int profileGap, bool useCustomDailySessionTimes, int dailySessionStartTime, int dailySessionEndTime, SessionProfileStyleEnum sessionProfileStyle, int sessionOutlineSmoothness, int weeklyNumberOfVolumeBars, int weeklyBarThickness, VolumeTypeEnum weeklyVolumeType, int weeklyBarOpacity, bool weeklyDisplayPoC, int weeklyPoCLineThickness, int weeklyPoCLineOpacity, bool weeklyDisplayValueArea, int weeklyValueAreaPercentage, bool weeklyDisplayValueAreaLines, int weeklyValueAreaLinesThickness, int weeklyValueAreaLinesOpacity, bool weeklyExtendPoCLine, bool weeklyExtendValueAreaLines, int sessionNumberOfVolumeBars, int sessionBarThickness, VolumeTypeEnum sessionVolumeType, int sessionBarOpacity, bool sessionDisplayPoC, int sessionPoCLineThickness, int sessionPoCLineOpacity, bool sessionDisplayValueArea, int sessionValueAreaPercentage, bool sessionDisplayValueAreaLines, int sessionValueAreaLinesThickness, int sessionValueAreaLinesOpacity, bool sessionExtendPoCLine, bool sessionExtendValueAreaLines, bool enableGradientFill, int gradientIntensity, bool displayLVN, int lVNNumberOfRows, int lVNDetectionPercent, bool showAdjacentLVNNodes, int lVNFillOpacity, int lVNBorderOpacity, bool enableDomdicator, int domdicatorWidth, int domdicatorGap, int domMaxRightExtension, bool showDOMVolumeText, float domMaxTextSize, float domMinTextSize, float domHistoricalOpacity, bool showHistoricalOrders, int liveOrderTickThreshold, float domLiveOpacity, int minimumOrdersToStart, bool enableAlerts, int alertDistanceTicks, bool alertOnPreviousDayLevels, bool alertOnPreviousWeekLevels, bool alertOnNakedLevels, bool alertOnWeeklyNakedLevels, bool alertOnOvernightLevels, bool playAlertSound, string alertSoundFile, bool rearmAlertsOnNewSession, bool enableMoveProfiles, int consolidationBars, int breakoutThresholdTicks, int minimumMoveSizeTicks, int maxMovesToDisplay, int moveProfileOpacity, DashStyleHelper movePOCLineStyle, int movePOCThickness, DashStyleHelper moveVALineStyle, int moveVAThickness, int moveNumberOfVolumeBars, int moveValueAreaPercentage, int moveVALinesOpacity, bool enableCandleProfiles, int candleProfileWidth, int candleProfileOpacity, VolumeTypeEnum candleProfileVolumeType, bool candleProfileShowPOC, bool candleProfileShowVA, int candleProfileVAPercent, bool candleProfileShowVALines, int candleVALinesThickness, int candleVALinesOpacity)
+		public RedTail.RedTailVolumeProfile RedTailVolumeProfile(ISeries<double> input, ProfileModeEnum profileMode, ProfileAlignment alignment, int weeksLookback, int sessionsLookback, int monthsLookback, CompositeDateRangeType compositeRangeType, int compositeDaysBack, int compositeWeeksBack, int compositeMonthsBack, DateTime compositeCustomStartDate, DateTime compositeCustomEndDate, bool useCustomSessionTimes, int sessionStartTime, int sessionEndTime, int numberOfVolumeBars, int barThickness, int profileWidth, VolumeTypeEnum volumeType, int barOpacity, bool displayPoC, int poCLineThickness, DashStyleHelper poCLineStyle, int poCLineOpacity, bool extendPoCLine, bool displayValueArea, int valueAreaPercentage, bool displayValueAreaLines, int valueAreaLinesThickness, DashStyleHelper valueAreaLineStyle, int valueAreaLinesOpacity, bool extendValueAreaLines, bool enableDebugPrints, bool displayPreviousDayPOC, DashStyleHelper pdPOCLineStyle, int pdPOCThickness, int pdPOCOpacity, bool displayPreviousDayVAH, DashStyleHelper pdVAHLineStyle, int pdVAHThickness, int pdVAHOpacity, bool displayPreviousDayVAL, DashStyleHelper pdVALLineStyle, int pdVALThickness, int pdVALOpacity, bool displayPreviousDayHigh, DashStyleHelper pdHighLineStyle, int pdHighThickness, int pdHighOpacity, bool displayPreviousDayLow, DashStyleHelper pdLowLineStyle, int pdLowThickness, int pdLowOpacity, bool displayPreviousWeekPOC, DashStyleHelper pwPOCLineStyle, int pwPOCThickness, int pwPOCOpacity, bool displayPreviousWeekVAH, DashStyleHelper pwVAHLineStyle, int pwVAHThickness, int pwVAHOpacity, bool displayPreviousWeekVAL, DashStyleHelper pwVALLineStyle, int pwVALThickness, int pwVALOpacity, bool displayPreviousWeekHigh, DashStyleHelper pwHighLineStyle, int pwHighThickness, int pwHighOpacity, bool displayPreviousWeekLow, DashStyleHelper pwLowLineStyle, int pwLowThickness, int pwLowOpacity, bool displayOvernightPOC, DashStyleHelper overnightPOCLineStyle, int overnightPOCThickness, int overnightPOCOpacity, bool displayOvernightVAH, DashStyleHelper overnightVAHLineStyle, int overnightVAHThickness, int overnightVAHOpacity, bool displayOvernightVAL, DashStyleHelper overnightVALLineStyle, int overnightVALThickness, int overnightVALOpacity, bool displayOvernightHigh, DashStyleHelper overnightHighLineStyle, int overnightHighThickness, int overnightHighOpacity, bool displayOvernightLow, DashStyleHelper overnightLowLineStyle, int overnightLowThickness, int overnightLowOpacity, int overnightStartTime, int overnightEndTime, DashStyleHelper nakedPOCLineStyle, int nakedPOCThickness, int nakedPOCOpacity, DashStyleHelper nakedVAHLineStyle, int nakedVAHThickness, int nakedVAHOpacity, DashStyleHelper nakedVALLineStyle, int nakedVALThickness, int nakedVALOpacity, DashStyleHelper weeklyNakedPOCLineStyle, int weeklyNakedPOCThickness, int weeklyNakedPOCOpacity, DashStyleHelper weeklyNakedVAHLineStyle, int weeklyNakedVAHThickness, int weeklyNakedVAHOpacity, DashStyleHelper weeklyNakedVALLineStyle, int weeklyNakedVALThickness, int weeklyNakedVALOpacity, bool displayNakedLevels, int maxNakedLevelsToDisplay, bool displayWeeklyNakedLevels, int maxWeeklyNakedLevelsToDisplay, bool keepFilledLevelsAfterSession, int removeAfterTouchCount, bool keepFilledWeeklyLevelsAfterWeek, int removeWeeklyAfterTouchCount, bool showTouchCountInLabels, bool britishDateFormat, int previousDayLineWidth, bool showPriceValuesInLabels, int labelFontSize, bool enableDualProfileMode, int weeklyProfileWidth, int sessionProfileWidth, int profileGap, bool useCustomDailySessionTimes, int dailySessionStartTime, int dailySessionEndTime, SessionProfileStyleEnum sessionProfileStyle, int sessionOutlineSmoothness, int weeklyNumberOfVolumeBars, int weeklyBarThickness, VolumeTypeEnum weeklyVolumeType, int weeklyBarOpacity, bool weeklyDisplayPoC, int weeklyPoCLineThickness, int weeklyPoCLineOpacity, bool weeklyDisplayValueArea, int weeklyValueAreaPercentage, bool weeklyDisplayValueAreaLines, int weeklyValueAreaLinesThickness, int weeklyValueAreaLinesOpacity, bool weeklyExtendPoCLine, bool weeklyExtendValueAreaLines, int sessionNumberOfVolumeBars, int sessionBarThickness, VolumeTypeEnum sessionVolumeType, int sessionBarOpacity, bool sessionDisplayPoC, int sessionPoCLineThickness, int sessionPoCLineOpacity, bool sessionDisplayValueArea, int sessionValueAreaPercentage, bool sessionDisplayValueAreaLines, int sessionValueAreaLinesThickness, int sessionValueAreaLinesOpacity, bool sessionExtendPoCLine, bool sessionExtendValueAreaLines, bool enableGradientFill, int gradientIntensity, bool displayLVN, int lVNNumberOfRows, int lVNDetectionPercent, bool showAdjacentLVNNodes, int lVNFillOpacity, int lVNBorderOpacity, bool enableDomdicator, int domdicatorWidth, int domdicatorGap, int domMaxRightExtension, bool showDOMVolumeText, float domMaxTextSize, float domMinTextSize, float domHistoricalOpacity, bool showHistoricalOrders, int liveOrderTickThreshold, float domLiveOpacity, int minimumOrdersToStart, bool enableAlerts, int alertDistanceTicks, bool alertOnPreviousDayLevels, bool alertOnPreviousWeekLevels, bool alertOnNakedLevels, bool alertOnWeeklyNakedLevels, bool alertOnOvernightLevels, bool playAlertSound, string alertSoundFile, bool rearmAlertsOnNewSession, bool enableMoveProfiles, int consolidationBars, int breakoutThresholdTicks, int minimumMoveSizeTicks, int maxMovesToDisplay, int moveProfileOpacity, DashStyleHelper movePOCLineStyle, int movePOCThickness, DashStyleHelper moveVALineStyle, int moveVAThickness, int moveNumberOfVolumeBars, int moveValueAreaPercentage, int moveVALinesOpacity, bool enableCandleProfiles, int candleProfileWidth, int candleProfileOpacity, VolumeTypeEnum candleProfileVolumeType, bool candleProfileShowPOC, bool candleProfileShowVA, int candleProfileVAPercent, bool candleProfileShowVALines, int candleVALinesThickness, int candleVALinesOpacity, bool pdUseIndividualStyles, DashStyleHelper pdSharedLineStyle, int pdSharedThickness, int pdSharedOpacity, bool pwUseIndividualStyles, DashStyleHelper pwSharedLineStyle, int pwSharedThickness, int pwSharedOpacity, bool onUseIndividualStyles, DashStyleHelper onSharedLineStyle, int onSharedThickness, int onSharedOpacity)
 		{
-			if (cacheRedTailVolumeProfile_V2 != null)
-				for (int idx = 0; idx < cacheRedTailVolumeProfile_V2.Length; idx++)
-					if (cacheRedTailVolumeProfile_V2[idx] != null && cacheRedTailVolumeProfile_V2[idx].ProfileMode == profileMode && cacheRedTailVolumeProfile_V2[idx].Alignment == alignment && cacheRedTailVolumeProfile_V2[idx].WeeksLookback == weeksLookback && cacheRedTailVolumeProfile_V2[idx].SessionsLookback == sessionsLookback && cacheRedTailVolumeProfile_V2[idx].MonthsLookback == monthsLookback && cacheRedTailVolumeProfile_V2[idx].CompositeRangeType == compositeRangeType && cacheRedTailVolumeProfile_V2[idx].CompositeDaysBack == compositeDaysBack && cacheRedTailVolumeProfile_V2[idx].CompositeWeeksBack == compositeWeeksBack && cacheRedTailVolumeProfile_V2[idx].CompositeMonthsBack == compositeMonthsBack && cacheRedTailVolumeProfile_V2[idx].CompositeCustomStartDate == compositeCustomStartDate && cacheRedTailVolumeProfile_V2[idx].CompositeCustomEndDate == compositeCustomEndDate && cacheRedTailVolumeProfile_V2[idx].UseCustomSessionTimes == useCustomSessionTimes && cacheRedTailVolumeProfile_V2[idx].SessionStartTime == sessionStartTime && cacheRedTailVolumeProfile_V2[idx].SessionEndTime == sessionEndTime && cacheRedTailVolumeProfile_V2[idx].NumberOfVolumeBars == numberOfVolumeBars && cacheRedTailVolumeProfile_V2[idx].BarThickness == barThickness && cacheRedTailVolumeProfile_V2[idx].ProfileWidth == profileWidth && cacheRedTailVolumeProfile_V2[idx].VolumeType == volumeType && cacheRedTailVolumeProfile_V2[idx].BarOpacity == barOpacity && cacheRedTailVolumeProfile_V2[idx].DisplayPoC == displayPoC && cacheRedTailVolumeProfile_V2[idx].PoCLineThickness == poCLineThickness && cacheRedTailVolumeProfile_V2[idx].PoCLineStyle == poCLineStyle && cacheRedTailVolumeProfile_V2[idx].PoCLineOpacity == poCLineOpacity && cacheRedTailVolumeProfile_V2[idx].ExtendPoCLine == extendPoCLine && cacheRedTailVolumeProfile_V2[idx].DisplayValueArea == displayValueArea && cacheRedTailVolumeProfile_V2[idx].ValueAreaPercentage == valueAreaPercentage && cacheRedTailVolumeProfile_V2[idx].DisplayValueAreaLines == displayValueAreaLines && cacheRedTailVolumeProfile_V2[idx].ValueAreaLinesThickness == valueAreaLinesThickness && cacheRedTailVolumeProfile_V2[idx].ValueAreaLineStyle == valueAreaLineStyle && cacheRedTailVolumeProfile_V2[idx].ValueAreaLinesOpacity == valueAreaLinesOpacity && cacheRedTailVolumeProfile_V2[idx].ExtendValueAreaLines == extendValueAreaLines && cacheRedTailVolumeProfile_V2[idx].EnableDebugPrints == enableDebugPrints && cacheRedTailVolumeProfile_V2[idx].DisplayPreviousDayPOC == displayPreviousDayPOC && cacheRedTailVolumeProfile_V2[idx].PdPOCLineStyle == pdPOCLineStyle && cacheRedTailVolumeProfile_V2[idx].PdPOCThickness == pdPOCThickness && cacheRedTailVolumeProfile_V2[idx].PdPOCOpacity == pdPOCOpacity && cacheRedTailVolumeProfile_V2[idx].DisplayPreviousDayVAH == displayPreviousDayVAH && cacheRedTailVolumeProfile_V2[idx].PdVAHLineStyle == pdVAHLineStyle && cacheRedTailVolumeProfile_V2[idx].PdVAHThickness == pdVAHThickness && cacheRedTailVolumeProfile_V2[idx].PdVAHOpacity == pdVAHOpacity && cacheRedTailVolumeProfile_V2[idx].DisplayPreviousDayVAL == displayPreviousDayVAL && cacheRedTailVolumeProfile_V2[idx].PdVALLineStyle == pdVALLineStyle && cacheRedTailVolumeProfile_V2[idx].PdVALThickness == pdVALThickness && cacheRedTailVolumeProfile_V2[idx].PdVALOpacity == pdVALOpacity && cacheRedTailVolumeProfile_V2[idx].DisplayPreviousDayHigh == displayPreviousDayHigh && cacheRedTailVolumeProfile_V2[idx].PdHighLineStyle == pdHighLineStyle && cacheRedTailVolumeProfile_V2[idx].PdHighThickness == pdHighThickness && cacheRedTailVolumeProfile_V2[idx].PdHighOpacity == pdHighOpacity && cacheRedTailVolumeProfile_V2[idx].DisplayPreviousDayLow == displayPreviousDayLow && cacheRedTailVolumeProfile_V2[idx].PdLowLineStyle == pdLowLineStyle && cacheRedTailVolumeProfile_V2[idx].PdLowThickness == pdLowThickness && cacheRedTailVolumeProfile_V2[idx].PdLowOpacity == pdLowOpacity && cacheRedTailVolumeProfile_V2[idx].DisplayPreviousWeekPOC == displayPreviousWeekPOC && cacheRedTailVolumeProfile_V2[idx].PwPOCLineStyle == pwPOCLineStyle && cacheRedTailVolumeProfile_V2[idx].PwPOCThickness == pwPOCThickness && cacheRedTailVolumeProfile_V2[idx].PwPOCOpacity == pwPOCOpacity && cacheRedTailVolumeProfile_V2[idx].DisplayPreviousWeekVAH == displayPreviousWeekVAH && cacheRedTailVolumeProfile_V2[idx].PwVAHLineStyle == pwVAHLineStyle && cacheRedTailVolumeProfile_V2[idx].PwVAHThickness == pwVAHThickness && cacheRedTailVolumeProfile_V2[idx].PwVAHOpacity == pwVAHOpacity && cacheRedTailVolumeProfile_V2[idx].DisplayPreviousWeekVAL == displayPreviousWeekVAL && cacheRedTailVolumeProfile_V2[idx].PwVALLineStyle == pwVALLineStyle && cacheRedTailVolumeProfile_V2[idx].PwVALThickness == pwVALThickness && cacheRedTailVolumeProfile_V2[idx].PwVALOpacity == pwVALOpacity && cacheRedTailVolumeProfile_V2[idx].DisplayPreviousWeekHigh == displayPreviousWeekHigh && cacheRedTailVolumeProfile_V2[idx].PwHighLineStyle == pwHighLineStyle && cacheRedTailVolumeProfile_V2[idx].PwHighThickness == pwHighThickness && cacheRedTailVolumeProfile_V2[idx].PwHighOpacity == pwHighOpacity && cacheRedTailVolumeProfile_V2[idx].DisplayPreviousWeekLow == displayPreviousWeekLow && cacheRedTailVolumeProfile_V2[idx].PwLowLineStyle == pwLowLineStyle && cacheRedTailVolumeProfile_V2[idx].PwLowThickness == pwLowThickness && cacheRedTailVolumeProfile_V2[idx].PwLowOpacity == pwLowOpacity && cacheRedTailVolumeProfile_V2[idx].DisplayOvernightPOC == displayOvernightPOC && cacheRedTailVolumeProfile_V2[idx].OvernightPOCLineStyle == overnightPOCLineStyle && cacheRedTailVolumeProfile_V2[idx].OvernightPOCThickness == overnightPOCThickness && cacheRedTailVolumeProfile_V2[idx].OvernightPOCOpacity == overnightPOCOpacity && cacheRedTailVolumeProfile_V2[idx].DisplayOvernightVAH == displayOvernightVAH && cacheRedTailVolumeProfile_V2[idx].OvernightVAHLineStyle == overnightVAHLineStyle && cacheRedTailVolumeProfile_V2[idx].OvernightVAHThickness == overnightVAHThickness && cacheRedTailVolumeProfile_V2[idx].OvernightVAHOpacity == overnightVAHOpacity && cacheRedTailVolumeProfile_V2[idx].DisplayOvernightVAL == displayOvernightVAL && cacheRedTailVolumeProfile_V2[idx].OvernightVALLineStyle == overnightVALLineStyle && cacheRedTailVolumeProfile_V2[idx].OvernightVALThickness == overnightVALThickness && cacheRedTailVolumeProfile_V2[idx].OvernightVALOpacity == overnightVALOpacity && cacheRedTailVolumeProfile_V2[idx].DisplayOvernightHigh == displayOvernightHigh && cacheRedTailVolumeProfile_V2[idx].OvernightHighLineStyle == overnightHighLineStyle && cacheRedTailVolumeProfile_V2[idx].OvernightHighThickness == overnightHighThickness && cacheRedTailVolumeProfile_V2[idx].OvernightHighOpacity == overnightHighOpacity && cacheRedTailVolumeProfile_V2[idx].DisplayOvernightLow == displayOvernightLow && cacheRedTailVolumeProfile_V2[idx].OvernightLowLineStyle == overnightLowLineStyle && cacheRedTailVolumeProfile_V2[idx].OvernightLowThickness == overnightLowThickness && cacheRedTailVolumeProfile_V2[idx].OvernightLowOpacity == overnightLowOpacity && cacheRedTailVolumeProfile_V2[idx].OvernightStartTime == overnightStartTime && cacheRedTailVolumeProfile_V2[idx].OvernightEndTime == overnightEndTime && cacheRedTailVolumeProfile_V2[idx].NakedPOCLineStyle == nakedPOCLineStyle && cacheRedTailVolumeProfile_V2[idx].NakedPOCThickness == nakedPOCThickness && cacheRedTailVolumeProfile_V2[idx].NakedPOCOpacity == nakedPOCOpacity && cacheRedTailVolumeProfile_V2[idx].NakedVAHLineStyle == nakedVAHLineStyle && cacheRedTailVolumeProfile_V2[idx].NakedVAHThickness == nakedVAHThickness && cacheRedTailVolumeProfile_V2[idx].NakedVAHOpacity == nakedVAHOpacity && cacheRedTailVolumeProfile_V2[idx].NakedVALLineStyle == nakedVALLineStyle && cacheRedTailVolumeProfile_V2[idx].NakedVALThickness == nakedVALThickness && cacheRedTailVolumeProfile_V2[idx].NakedVALOpacity == nakedVALOpacity && cacheRedTailVolumeProfile_V2[idx].WeeklyNakedPOCLineStyle == weeklyNakedPOCLineStyle && cacheRedTailVolumeProfile_V2[idx].WeeklyNakedPOCThickness == weeklyNakedPOCThickness && cacheRedTailVolumeProfile_V2[idx].WeeklyNakedPOCOpacity == weeklyNakedPOCOpacity && cacheRedTailVolumeProfile_V2[idx].WeeklyNakedVAHLineStyle == weeklyNakedVAHLineStyle && cacheRedTailVolumeProfile_V2[idx].WeeklyNakedVAHThickness == weeklyNakedVAHThickness && cacheRedTailVolumeProfile_V2[idx].WeeklyNakedVAHOpacity == weeklyNakedVAHOpacity && cacheRedTailVolumeProfile_V2[idx].WeeklyNakedVALLineStyle == weeklyNakedVALLineStyle && cacheRedTailVolumeProfile_V2[idx].WeeklyNakedVALThickness == weeklyNakedVALThickness && cacheRedTailVolumeProfile_V2[idx].WeeklyNakedVALOpacity == weeklyNakedVALOpacity && cacheRedTailVolumeProfile_V2[idx].DisplayNakedLevels == displayNakedLevels && cacheRedTailVolumeProfile_V2[idx].MaxNakedLevelsToDisplay == maxNakedLevelsToDisplay && cacheRedTailVolumeProfile_V2[idx].DisplayWeeklyNakedLevels == displayWeeklyNakedLevels && cacheRedTailVolumeProfile_V2[idx].MaxWeeklyNakedLevelsToDisplay == maxWeeklyNakedLevelsToDisplay && cacheRedTailVolumeProfile_V2[idx].KeepFilledLevelsAfterSession == keepFilledLevelsAfterSession && cacheRedTailVolumeProfile_V2[idx].RemoveAfterTouchCount == removeAfterTouchCount && cacheRedTailVolumeProfile_V2[idx].KeepFilledWeeklyLevelsAfterWeek == keepFilledWeeklyLevelsAfterWeek && cacheRedTailVolumeProfile_V2[idx].RemoveWeeklyAfterTouchCount == removeWeeklyAfterTouchCount && cacheRedTailVolumeProfile_V2[idx].ShowTouchCountInLabels == showTouchCountInLabels && cacheRedTailVolumeProfile_V2[idx].BritishDateFormat == britishDateFormat && cacheRedTailVolumeProfile_V2[idx].PreviousDayLineWidth == previousDayLineWidth && cacheRedTailVolumeProfile_V2[idx].ShowPriceValuesInLabels == showPriceValuesInLabels && cacheRedTailVolumeProfile_V2[idx].LabelFontSize == labelFontSize && cacheRedTailVolumeProfile_V2[idx].EnableDualProfileMode == enableDualProfileMode && cacheRedTailVolumeProfile_V2[idx].WeeklyProfileWidth == weeklyProfileWidth && cacheRedTailVolumeProfile_V2[idx].SessionProfileWidth == sessionProfileWidth && cacheRedTailVolumeProfile_V2[idx].ProfileGap == profileGap && cacheRedTailVolumeProfile_V2[idx].UseCustomDailySessionTimes == useCustomDailySessionTimes && cacheRedTailVolumeProfile_V2[idx].DailySessionStartTime == dailySessionStartTime && cacheRedTailVolumeProfile_V2[idx].DailySessionEndTime == dailySessionEndTime && cacheRedTailVolumeProfile_V2[idx].SessionProfileStyle == sessionProfileStyle && cacheRedTailVolumeProfile_V2[idx].SessionOutlineSmoothness == sessionOutlineSmoothness && cacheRedTailVolumeProfile_V2[idx].WeeklyNumberOfVolumeBars == weeklyNumberOfVolumeBars && cacheRedTailVolumeProfile_V2[idx].WeeklyBarThickness == weeklyBarThickness && cacheRedTailVolumeProfile_V2[idx].WeeklyVolumeType == weeklyVolumeType && cacheRedTailVolumeProfile_V2[idx].WeeklyBarOpacity == weeklyBarOpacity && cacheRedTailVolumeProfile_V2[idx].WeeklyDisplayPoC == weeklyDisplayPoC && cacheRedTailVolumeProfile_V2[idx].WeeklyPoCLineThickness == weeklyPoCLineThickness && cacheRedTailVolumeProfile_V2[idx].WeeklyPoCLineOpacity == weeklyPoCLineOpacity && cacheRedTailVolumeProfile_V2[idx].WeeklyDisplayValueArea == weeklyDisplayValueArea && cacheRedTailVolumeProfile_V2[idx].WeeklyValueAreaPercentage == weeklyValueAreaPercentage && cacheRedTailVolumeProfile_V2[idx].WeeklyDisplayValueAreaLines == weeklyDisplayValueAreaLines && cacheRedTailVolumeProfile_V2[idx].WeeklyValueAreaLinesThickness == weeklyValueAreaLinesThickness && cacheRedTailVolumeProfile_V2[idx].WeeklyValueAreaLinesOpacity == weeklyValueAreaLinesOpacity && cacheRedTailVolumeProfile_V2[idx].WeeklyExtendPoCLine == weeklyExtendPoCLine && cacheRedTailVolumeProfile_V2[idx].WeeklyExtendValueAreaLines == weeklyExtendValueAreaLines && cacheRedTailVolumeProfile_V2[idx].SessionNumberOfVolumeBars == sessionNumberOfVolumeBars && cacheRedTailVolumeProfile_V2[idx].SessionBarThickness == sessionBarThickness && cacheRedTailVolumeProfile_V2[idx].SessionVolumeType == sessionVolumeType && cacheRedTailVolumeProfile_V2[idx].SessionBarOpacity == sessionBarOpacity && cacheRedTailVolumeProfile_V2[idx].SessionDisplayPoC == sessionDisplayPoC && cacheRedTailVolumeProfile_V2[idx].SessionPoCLineThickness == sessionPoCLineThickness && cacheRedTailVolumeProfile_V2[idx].SessionPoCLineOpacity == sessionPoCLineOpacity && cacheRedTailVolumeProfile_V2[idx].SessionDisplayValueArea == sessionDisplayValueArea && cacheRedTailVolumeProfile_V2[idx].SessionValueAreaPercentage == sessionValueAreaPercentage && cacheRedTailVolumeProfile_V2[idx].SessionDisplayValueAreaLines == sessionDisplayValueAreaLines && cacheRedTailVolumeProfile_V2[idx].SessionValueAreaLinesThickness == sessionValueAreaLinesThickness && cacheRedTailVolumeProfile_V2[idx].SessionValueAreaLinesOpacity == sessionValueAreaLinesOpacity && cacheRedTailVolumeProfile_V2[idx].SessionExtendPoCLine == sessionExtendPoCLine && cacheRedTailVolumeProfile_V2[idx].SessionExtendValueAreaLines == sessionExtendValueAreaLines && cacheRedTailVolumeProfile_V2[idx].EnableGradientFill == enableGradientFill && cacheRedTailVolumeProfile_V2[idx].GradientIntensity == gradientIntensity && cacheRedTailVolumeProfile_V2[idx].DisplayLVN == displayLVN && cacheRedTailVolumeProfile_V2[idx].LVNNumberOfRows == lVNNumberOfRows && cacheRedTailVolumeProfile_V2[idx].LVNDetectionPercent == lVNDetectionPercent && cacheRedTailVolumeProfile_V2[idx].ShowAdjacentLVNNodes == showAdjacentLVNNodes && cacheRedTailVolumeProfile_V2[idx].LVNFillOpacity == lVNFillOpacity && cacheRedTailVolumeProfile_V2[idx].LVNBorderOpacity == lVNBorderOpacity && cacheRedTailVolumeProfile_V2[idx].EnableDomdicator == enableDomdicator && cacheRedTailVolumeProfile_V2[idx].DomdicatorWidth == domdicatorWidth && cacheRedTailVolumeProfile_V2[idx].DomdicatorGap == domdicatorGap && cacheRedTailVolumeProfile_V2[idx].DomMaxRightExtension == domMaxRightExtension && cacheRedTailVolumeProfile_V2[idx].ShowDOMVolumeText == showDOMVolumeText && cacheRedTailVolumeProfile_V2[idx].DomMaxTextSize == domMaxTextSize && cacheRedTailVolumeProfile_V2[idx].DomMinTextSize == domMinTextSize && cacheRedTailVolumeProfile_V2[idx].DomHistoricalOpacity == domHistoricalOpacity && cacheRedTailVolumeProfile_V2[idx].ShowHistoricalOrders == showHistoricalOrders && cacheRedTailVolumeProfile_V2[idx].LiveOrderTickThreshold == liveOrderTickThreshold && cacheRedTailVolumeProfile_V2[idx].DomLiveOpacity == domLiveOpacity && cacheRedTailVolumeProfile_V2[idx].MinimumOrdersToStart == minimumOrdersToStart && cacheRedTailVolumeProfile_V2[idx].EnableAlerts == enableAlerts && cacheRedTailVolumeProfile_V2[idx].AlertDistanceTicks == alertDistanceTicks && cacheRedTailVolumeProfile_V2[idx].AlertOnPreviousDayLevels == alertOnPreviousDayLevels && cacheRedTailVolumeProfile_V2[idx].AlertOnPreviousWeekLevels == alertOnPreviousWeekLevels && cacheRedTailVolumeProfile_V2[idx].AlertOnNakedLevels == alertOnNakedLevels && cacheRedTailVolumeProfile_V2[idx].AlertOnWeeklyNakedLevels == alertOnWeeklyNakedLevels && cacheRedTailVolumeProfile_V2[idx].AlertOnOvernightLevels == alertOnOvernightLevels && cacheRedTailVolumeProfile_V2[idx].PlayAlertSound == playAlertSound && cacheRedTailVolumeProfile_V2[idx].AlertSoundFile == alertSoundFile && cacheRedTailVolumeProfile_V2[idx].RearmAlertsOnNewSession == rearmAlertsOnNewSession && cacheRedTailVolumeProfile_V2[idx].EnableMoveProfiles == enableMoveProfiles && cacheRedTailVolumeProfile_V2[idx].ConsolidationBars == consolidationBars && cacheRedTailVolumeProfile_V2[idx].BreakoutThresholdTicks == breakoutThresholdTicks && cacheRedTailVolumeProfile_V2[idx].MinimumMoveSizeTicks == minimumMoveSizeTicks && cacheRedTailVolumeProfile_V2[idx].MaxMovesToDisplay == maxMovesToDisplay && cacheRedTailVolumeProfile_V2[idx].MoveProfileOpacity == moveProfileOpacity && cacheRedTailVolumeProfile_V2[idx].MovePOCLineStyle == movePOCLineStyle && cacheRedTailVolumeProfile_V2[idx].MovePOCThickness == movePOCThickness && cacheRedTailVolumeProfile_V2[idx].MoveVALineStyle == moveVALineStyle && cacheRedTailVolumeProfile_V2[idx].MoveVAThickness == moveVAThickness && cacheRedTailVolumeProfile_V2[idx].MoveNumberOfVolumeBars == moveNumberOfVolumeBars && cacheRedTailVolumeProfile_V2[idx].MoveValueAreaPercentage == moveValueAreaPercentage && cacheRedTailVolumeProfile_V2[idx].MoveVALinesOpacity == moveVALinesOpacity && cacheRedTailVolumeProfile_V2[idx].EnableCandleProfiles == enableCandleProfiles && cacheRedTailVolumeProfile_V2[idx].CandleProfileWidth == candleProfileWidth && cacheRedTailVolumeProfile_V2[idx].CandleProfileOpacity == candleProfileOpacity && cacheRedTailVolumeProfile_V2[idx].CandleProfileVolumeType == candleProfileVolumeType && cacheRedTailVolumeProfile_V2[idx].CandleProfileShowPOC == candleProfileShowPOC && cacheRedTailVolumeProfile_V2[idx].CandleProfileShowVA == candleProfileShowVA && cacheRedTailVolumeProfile_V2[idx].CandleProfileVAPercent == candleProfileVAPercent && cacheRedTailVolumeProfile_V2[idx].CandleProfileShowVALines == candleProfileShowVALines && cacheRedTailVolumeProfile_V2[idx].CandleVALinesThickness == candleVALinesThickness && cacheRedTailVolumeProfile_V2[idx].CandleVALinesOpacity == candleVALinesOpacity && cacheRedTailVolumeProfile_V2[idx].EqualsInput(input))
-						return cacheRedTailVolumeProfile_V2[idx];
-			return CacheIndicator<RedTailVolumeProfile_V2>(new RedTailVolumeProfile_V2(){ ProfileMode = profileMode, Alignment = alignment, WeeksLookback = weeksLookback, SessionsLookback = sessionsLookback, MonthsLookback = monthsLookback, CompositeRangeType = compositeRangeType, CompositeDaysBack = compositeDaysBack, CompositeWeeksBack = compositeWeeksBack, CompositeMonthsBack = compositeMonthsBack, CompositeCustomStartDate = compositeCustomStartDate, CompositeCustomEndDate = compositeCustomEndDate, UseCustomSessionTimes = useCustomSessionTimes, SessionStartTime = sessionStartTime, SessionEndTime = sessionEndTime, NumberOfVolumeBars = numberOfVolumeBars, BarThickness = barThickness, ProfileWidth = profileWidth, VolumeType = volumeType, BarOpacity = barOpacity, DisplayPoC = displayPoC, PoCLineThickness = poCLineThickness, PoCLineStyle = poCLineStyle, PoCLineOpacity = poCLineOpacity, ExtendPoCLine = extendPoCLine, DisplayValueArea = displayValueArea, ValueAreaPercentage = valueAreaPercentage, DisplayValueAreaLines = displayValueAreaLines, ValueAreaLinesThickness = valueAreaLinesThickness, ValueAreaLineStyle = valueAreaLineStyle, ValueAreaLinesOpacity = valueAreaLinesOpacity, ExtendValueAreaLines = extendValueAreaLines, EnableDebugPrints = enableDebugPrints, DisplayPreviousDayPOC = displayPreviousDayPOC, PdPOCLineStyle = pdPOCLineStyle, PdPOCThickness = pdPOCThickness, PdPOCOpacity = pdPOCOpacity, DisplayPreviousDayVAH = displayPreviousDayVAH, PdVAHLineStyle = pdVAHLineStyle, PdVAHThickness = pdVAHThickness, PdVAHOpacity = pdVAHOpacity, DisplayPreviousDayVAL = displayPreviousDayVAL, PdVALLineStyle = pdVALLineStyle, PdVALThickness = pdVALThickness, PdVALOpacity = pdVALOpacity, DisplayPreviousDayHigh = displayPreviousDayHigh, PdHighLineStyle = pdHighLineStyle, PdHighThickness = pdHighThickness, PdHighOpacity = pdHighOpacity, DisplayPreviousDayLow = displayPreviousDayLow, PdLowLineStyle = pdLowLineStyle, PdLowThickness = pdLowThickness, PdLowOpacity = pdLowOpacity, DisplayPreviousWeekPOC = displayPreviousWeekPOC, PwPOCLineStyle = pwPOCLineStyle, PwPOCThickness = pwPOCThickness, PwPOCOpacity = pwPOCOpacity, DisplayPreviousWeekVAH = displayPreviousWeekVAH, PwVAHLineStyle = pwVAHLineStyle, PwVAHThickness = pwVAHThickness, PwVAHOpacity = pwVAHOpacity, DisplayPreviousWeekVAL = displayPreviousWeekVAL, PwVALLineStyle = pwVALLineStyle, PwVALThickness = pwVALThickness, PwVALOpacity = pwVALOpacity, DisplayPreviousWeekHigh = displayPreviousWeekHigh, PwHighLineStyle = pwHighLineStyle, PwHighThickness = pwHighThickness, PwHighOpacity = pwHighOpacity, DisplayPreviousWeekLow = displayPreviousWeekLow, PwLowLineStyle = pwLowLineStyle, PwLowThickness = pwLowThickness, PwLowOpacity = pwLowOpacity, DisplayOvernightPOC = displayOvernightPOC, OvernightPOCLineStyle = overnightPOCLineStyle, OvernightPOCThickness = overnightPOCThickness, OvernightPOCOpacity = overnightPOCOpacity, DisplayOvernightVAH = displayOvernightVAH, OvernightVAHLineStyle = overnightVAHLineStyle, OvernightVAHThickness = overnightVAHThickness, OvernightVAHOpacity = overnightVAHOpacity, DisplayOvernightVAL = displayOvernightVAL, OvernightVALLineStyle = overnightVALLineStyle, OvernightVALThickness = overnightVALThickness, OvernightVALOpacity = overnightVALOpacity, DisplayOvernightHigh = displayOvernightHigh, OvernightHighLineStyle = overnightHighLineStyle, OvernightHighThickness = overnightHighThickness, OvernightHighOpacity = overnightHighOpacity, DisplayOvernightLow = displayOvernightLow, OvernightLowLineStyle = overnightLowLineStyle, OvernightLowThickness = overnightLowThickness, OvernightLowOpacity = overnightLowOpacity, OvernightStartTime = overnightStartTime, OvernightEndTime = overnightEndTime, NakedPOCLineStyle = nakedPOCLineStyle, NakedPOCThickness = nakedPOCThickness, NakedPOCOpacity = nakedPOCOpacity, NakedVAHLineStyle = nakedVAHLineStyle, NakedVAHThickness = nakedVAHThickness, NakedVAHOpacity = nakedVAHOpacity, NakedVALLineStyle = nakedVALLineStyle, NakedVALThickness = nakedVALThickness, NakedVALOpacity = nakedVALOpacity, WeeklyNakedPOCLineStyle = weeklyNakedPOCLineStyle, WeeklyNakedPOCThickness = weeklyNakedPOCThickness, WeeklyNakedPOCOpacity = weeklyNakedPOCOpacity, WeeklyNakedVAHLineStyle = weeklyNakedVAHLineStyle, WeeklyNakedVAHThickness = weeklyNakedVAHThickness, WeeklyNakedVAHOpacity = weeklyNakedVAHOpacity, WeeklyNakedVALLineStyle = weeklyNakedVALLineStyle, WeeklyNakedVALThickness = weeklyNakedVALThickness, WeeklyNakedVALOpacity = weeklyNakedVALOpacity, DisplayNakedLevels = displayNakedLevels, MaxNakedLevelsToDisplay = maxNakedLevelsToDisplay, DisplayWeeklyNakedLevels = displayWeeklyNakedLevels, MaxWeeklyNakedLevelsToDisplay = maxWeeklyNakedLevelsToDisplay, KeepFilledLevelsAfterSession = keepFilledLevelsAfterSession, RemoveAfterTouchCount = removeAfterTouchCount, KeepFilledWeeklyLevelsAfterWeek = keepFilledWeeklyLevelsAfterWeek, RemoveWeeklyAfterTouchCount = removeWeeklyAfterTouchCount, ShowTouchCountInLabels = showTouchCountInLabels, BritishDateFormat = britishDateFormat, PreviousDayLineWidth = previousDayLineWidth, ShowPriceValuesInLabels = showPriceValuesInLabels, LabelFontSize = labelFontSize, EnableDualProfileMode = enableDualProfileMode, WeeklyProfileWidth = weeklyProfileWidth, SessionProfileWidth = sessionProfileWidth, ProfileGap = profileGap, UseCustomDailySessionTimes = useCustomDailySessionTimes, DailySessionStartTime = dailySessionStartTime, DailySessionEndTime = dailySessionEndTime, SessionProfileStyle = sessionProfileStyle, SessionOutlineSmoothness = sessionOutlineSmoothness, WeeklyNumberOfVolumeBars = weeklyNumberOfVolumeBars, WeeklyBarThickness = weeklyBarThickness, WeeklyVolumeType = weeklyVolumeType, WeeklyBarOpacity = weeklyBarOpacity, WeeklyDisplayPoC = weeklyDisplayPoC, WeeklyPoCLineThickness = weeklyPoCLineThickness, WeeklyPoCLineOpacity = weeklyPoCLineOpacity, WeeklyDisplayValueArea = weeklyDisplayValueArea, WeeklyValueAreaPercentage = weeklyValueAreaPercentage, WeeklyDisplayValueAreaLines = weeklyDisplayValueAreaLines, WeeklyValueAreaLinesThickness = weeklyValueAreaLinesThickness, WeeklyValueAreaLinesOpacity = weeklyValueAreaLinesOpacity, WeeklyExtendPoCLine = weeklyExtendPoCLine, WeeklyExtendValueAreaLines = weeklyExtendValueAreaLines, SessionNumberOfVolumeBars = sessionNumberOfVolumeBars, SessionBarThickness = sessionBarThickness, SessionVolumeType = sessionVolumeType, SessionBarOpacity = sessionBarOpacity, SessionDisplayPoC = sessionDisplayPoC, SessionPoCLineThickness = sessionPoCLineThickness, SessionPoCLineOpacity = sessionPoCLineOpacity, SessionDisplayValueArea = sessionDisplayValueArea, SessionValueAreaPercentage = sessionValueAreaPercentage, SessionDisplayValueAreaLines = sessionDisplayValueAreaLines, SessionValueAreaLinesThickness = sessionValueAreaLinesThickness, SessionValueAreaLinesOpacity = sessionValueAreaLinesOpacity, SessionExtendPoCLine = sessionExtendPoCLine, SessionExtendValueAreaLines = sessionExtendValueAreaLines, EnableGradientFill = enableGradientFill, GradientIntensity = gradientIntensity, DisplayLVN = displayLVN, LVNNumberOfRows = lVNNumberOfRows, LVNDetectionPercent = lVNDetectionPercent, ShowAdjacentLVNNodes = showAdjacentLVNNodes, LVNFillOpacity = lVNFillOpacity, LVNBorderOpacity = lVNBorderOpacity, EnableDomdicator = enableDomdicator, DomdicatorWidth = domdicatorWidth, DomdicatorGap = domdicatorGap, DomMaxRightExtension = domMaxRightExtension, ShowDOMVolumeText = showDOMVolumeText, DomMaxTextSize = domMaxTextSize, DomMinTextSize = domMinTextSize, DomHistoricalOpacity = domHistoricalOpacity, ShowHistoricalOrders = showHistoricalOrders, LiveOrderTickThreshold = liveOrderTickThreshold, DomLiveOpacity = domLiveOpacity, MinimumOrdersToStart = minimumOrdersToStart, EnableAlerts = enableAlerts, AlertDistanceTicks = alertDistanceTicks, AlertOnPreviousDayLevels = alertOnPreviousDayLevels, AlertOnPreviousWeekLevels = alertOnPreviousWeekLevels, AlertOnNakedLevels = alertOnNakedLevels, AlertOnWeeklyNakedLevels = alertOnWeeklyNakedLevels, AlertOnOvernightLevels = alertOnOvernightLevels, PlayAlertSound = playAlertSound, AlertSoundFile = alertSoundFile, RearmAlertsOnNewSession = rearmAlertsOnNewSession, EnableMoveProfiles = enableMoveProfiles, ConsolidationBars = consolidationBars, BreakoutThresholdTicks = breakoutThresholdTicks, MinimumMoveSizeTicks = minimumMoveSizeTicks, MaxMovesToDisplay = maxMovesToDisplay, MoveProfileOpacity = moveProfileOpacity, MovePOCLineStyle = movePOCLineStyle, MovePOCThickness = movePOCThickness, MoveVALineStyle = moveVALineStyle, MoveVAThickness = moveVAThickness, MoveNumberOfVolumeBars = moveNumberOfVolumeBars, MoveValueAreaPercentage = moveValueAreaPercentage, MoveVALinesOpacity = moveVALinesOpacity, EnableCandleProfiles = enableCandleProfiles, CandleProfileWidth = candleProfileWidth, CandleProfileOpacity = candleProfileOpacity, CandleProfileVolumeType = candleProfileVolumeType, CandleProfileShowPOC = candleProfileShowPOC, CandleProfileShowVA = candleProfileShowVA, CandleProfileVAPercent = candleProfileVAPercent, CandleProfileShowVALines = candleProfileShowVALines, CandleVALinesThickness = candleVALinesThickness, CandleVALinesOpacity = candleVALinesOpacity }, input, ref cacheRedTailVolumeProfile_V2);
+			if (cacheRedTailVolumeProfile != null)
+				for (int idx = 0; idx < cacheRedTailVolumeProfile.Length; idx++)
+					if (cacheRedTailVolumeProfile[idx] != null && cacheRedTailVolumeProfile[idx].ProfileMode == profileMode && cacheRedTailVolumeProfile[idx].Alignment == alignment && cacheRedTailVolumeProfile[idx].WeeksLookback == weeksLookback && cacheRedTailVolumeProfile[idx].SessionsLookback == sessionsLookback && cacheRedTailVolumeProfile[idx].MonthsLookback == monthsLookback && cacheRedTailVolumeProfile[idx].CompositeRangeType == compositeRangeType && cacheRedTailVolumeProfile[idx].CompositeDaysBack == compositeDaysBack && cacheRedTailVolumeProfile[idx].CompositeWeeksBack == compositeWeeksBack && cacheRedTailVolumeProfile[idx].CompositeMonthsBack == compositeMonthsBack && cacheRedTailVolumeProfile[idx].CompositeCustomStartDate == compositeCustomStartDate && cacheRedTailVolumeProfile[idx].CompositeCustomEndDate == compositeCustomEndDate && cacheRedTailVolumeProfile[idx].UseCustomSessionTimes == useCustomSessionTimes && cacheRedTailVolumeProfile[idx].SessionStartTime == sessionStartTime && cacheRedTailVolumeProfile[idx].SessionEndTime == sessionEndTime && cacheRedTailVolumeProfile[idx].NumberOfVolumeBars == numberOfVolumeBars && cacheRedTailVolumeProfile[idx].BarThickness == barThickness && cacheRedTailVolumeProfile[idx].ProfileWidth == profileWidth && cacheRedTailVolumeProfile[idx].VolumeType == volumeType && cacheRedTailVolumeProfile[idx].BarOpacity == barOpacity && cacheRedTailVolumeProfile[idx].DisplayPoC == displayPoC && cacheRedTailVolumeProfile[idx].PoCLineThickness == poCLineThickness && cacheRedTailVolumeProfile[idx].PoCLineStyle == poCLineStyle && cacheRedTailVolumeProfile[idx].PoCLineOpacity == poCLineOpacity && cacheRedTailVolumeProfile[idx].ExtendPoCLine == extendPoCLine && cacheRedTailVolumeProfile[idx].DisplayValueArea == displayValueArea && cacheRedTailVolumeProfile[idx].ValueAreaPercentage == valueAreaPercentage && cacheRedTailVolumeProfile[idx].DisplayValueAreaLines == displayValueAreaLines && cacheRedTailVolumeProfile[idx].ValueAreaLinesThickness == valueAreaLinesThickness && cacheRedTailVolumeProfile[idx].ValueAreaLineStyle == valueAreaLineStyle && cacheRedTailVolumeProfile[idx].ValueAreaLinesOpacity == valueAreaLinesOpacity && cacheRedTailVolumeProfile[idx].ExtendValueAreaLines == extendValueAreaLines && cacheRedTailVolumeProfile[idx].EnableDebugPrints == enableDebugPrints && cacheRedTailVolumeProfile[idx].DisplayPreviousDayPOC == displayPreviousDayPOC && cacheRedTailVolumeProfile[idx].PdPOCLineStyle == pdPOCLineStyle && cacheRedTailVolumeProfile[idx].PdPOCThickness == pdPOCThickness && cacheRedTailVolumeProfile[idx].PdPOCOpacity == pdPOCOpacity && cacheRedTailVolumeProfile[idx].DisplayPreviousDayVAH == displayPreviousDayVAH && cacheRedTailVolumeProfile[idx].PdVAHLineStyle == pdVAHLineStyle && cacheRedTailVolumeProfile[idx].PdVAHThickness == pdVAHThickness && cacheRedTailVolumeProfile[idx].PdVAHOpacity == pdVAHOpacity && cacheRedTailVolumeProfile[idx].DisplayPreviousDayVAL == displayPreviousDayVAL && cacheRedTailVolumeProfile[idx].PdVALLineStyle == pdVALLineStyle && cacheRedTailVolumeProfile[idx].PdVALThickness == pdVALThickness && cacheRedTailVolumeProfile[idx].PdVALOpacity == pdVALOpacity && cacheRedTailVolumeProfile[idx].DisplayPreviousDayHigh == displayPreviousDayHigh && cacheRedTailVolumeProfile[idx].PdHighLineStyle == pdHighLineStyle && cacheRedTailVolumeProfile[idx].PdHighThickness == pdHighThickness && cacheRedTailVolumeProfile[idx].PdHighOpacity == pdHighOpacity && cacheRedTailVolumeProfile[idx].DisplayPreviousDayLow == displayPreviousDayLow && cacheRedTailVolumeProfile[idx].PdLowLineStyle == pdLowLineStyle && cacheRedTailVolumeProfile[idx].PdLowThickness == pdLowThickness && cacheRedTailVolumeProfile[idx].PdLowOpacity == pdLowOpacity && cacheRedTailVolumeProfile[idx].DisplayPreviousWeekPOC == displayPreviousWeekPOC && cacheRedTailVolumeProfile[idx].PwPOCLineStyle == pwPOCLineStyle && cacheRedTailVolumeProfile[idx].PwPOCThickness == pwPOCThickness && cacheRedTailVolumeProfile[idx].PwPOCOpacity == pwPOCOpacity && cacheRedTailVolumeProfile[idx].DisplayPreviousWeekVAH == displayPreviousWeekVAH && cacheRedTailVolumeProfile[idx].PwVAHLineStyle == pwVAHLineStyle && cacheRedTailVolumeProfile[idx].PwVAHThickness == pwVAHThickness && cacheRedTailVolumeProfile[idx].PwVAHOpacity == pwVAHOpacity && cacheRedTailVolumeProfile[idx].DisplayPreviousWeekVAL == displayPreviousWeekVAL && cacheRedTailVolumeProfile[idx].PwVALLineStyle == pwVALLineStyle && cacheRedTailVolumeProfile[idx].PwVALThickness == pwVALThickness && cacheRedTailVolumeProfile[idx].PwVALOpacity == pwVALOpacity && cacheRedTailVolumeProfile[idx].DisplayPreviousWeekHigh == displayPreviousWeekHigh && cacheRedTailVolumeProfile[idx].PwHighLineStyle == pwHighLineStyle && cacheRedTailVolumeProfile[idx].PwHighThickness == pwHighThickness && cacheRedTailVolumeProfile[idx].PwHighOpacity == pwHighOpacity && cacheRedTailVolumeProfile[idx].DisplayPreviousWeekLow == displayPreviousWeekLow && cacheRedTailVolumeProfile[idx].PwLowLineStyle == pwLowLineStyle && cacheRedTailVolumeProfile[idx].PwLowThickness == pwLowThickness && cacheRedTailVolumeProfile[idx].PwLowOpacity == pwLowOpacity && cacheRedTailVolumeProfile[idx].DisplayOvernightPOC == displayOvernightPOC && cacheRedTailVolumeProfile[idx].OvernightPOCLineStyle == overnightPOCLineStyle && cacheRedTailVolumeProfile[idx].OvernightPOCThickness == overnightPOCThickness && cacheRedTailVolumeProfile[idx].OvernightPOCOpacity == overnightPOCOpacity && cacheRedTailVolumeProfile[idx].DisplayOvernightVAH == displayOvernightVAH && cacheRedTailVolumeProfile[idx].OvernightVAHLineStyle == overnightVAHLineStyle && cacheRedTailVolumeProfile[idx].OvernightVAHThickness == overnightVAHThickness && cacheRedTailVolumeProfile[idx].OvernightVAHOpacity == overnightVAHOpacity && cacheRedTailVolumeProfile[idx].DisplayOvernightVAL == displayOvernightVAL && cacheRedTailVolumeProfile[idx].OvernightVALLineStyle == overnightVALLineStyle && cacheRedTailVolumeProfile[idx].OvernightVALThickness == overnightVALThickness && cacheRedTailVolumeProfile[idx].OvernightVALOpacity == overnightVALOpacity && cacheRedTailVolumeProfile[idx].DisplayOvernightHigh == displayOvernightHigh && cacheRedTailVolumeProfile[idx].OvernightHighLineStyle == overnightHighLineStyle && cacheRedTailVolumeProfile[idx].OvernightHighThickness == overnightHighThickness && cacheRedTailVolumeProfile[idx].OvernightHighOpacity == overnightHighOpacity && cacheRedTailVolumeProfile[idx].DisplayOvernightLow == displayOvernightLow && cacheRedTailVolumeProfile[idx].OvernightLowLineStyle == overnightLowLineStyle && cacheRedTailVolumeProfile[idx].OvernightLowThickness == overnightLowThickness && cacheRedTailVolumeProfile[idx].OvernightLowOpacity == overnightLowOpacity && cacheRedTailVolumeProfile[idx].OvernightStartTime == overnightStartTime && cacheRedTailVolumeProfile[idx].OvernightEndTime == overnightEndTime && cacheRedTailVolumeProfile[idx].NakedPOCLineStyle == nakedPOCLineStyle && cacheRedTailVolumeProfile[idx].NakedPOCThickness == nakedPOCThickness && cacheRedTailVolumeProfile[idx].NakedPOCOpacity == nakedPOCOpacity && cacheRedTailVolumeProfile[idx].NakedVAHLineStyle == nakedVAHLineStyle && cacheRedTailVolumeProfile[idx].NakedVAHThickness == nakedVAHThickness && cacheRedTailVolumeProfile[idx].NakedVAHOpacity == nakedVAHOpacity && cacheRedTailVolumeProfile[idx].NakedVALLineStyle == nakedVALLineStyle && cacheRedTailVolumeProfile[idx].NakedVALThickness == nakedVALThickness && cacheRedTailVolumeProfile[idx].NakedVALOpacity == nakedVALOpacity && cacheRedTailVolumeProfile[idx].WeeklyNakedPOCLineStyle == weeklyNakedPOCLineStyle && cacheRedTailVolumeProfile[idx].WeeklyNakedPOCThickness == weeklyNakedPOCThickness && cacheRedTailVolumeProfile[idx].WeeklyNakedPOCOpacity == weeklyNakedPOCOpacity && cacheRedTailVolumeProfile[idx].WeeklyNakedVAHLineStyle == weeklyNakedVAHLineStyle && cacheRedTailVolumeProfile[idx].WeeklyNakedVAHThickness == weeklyNakedVAHThickness && cacheRedTailVolumeProfile[idx].WeeklyNakedVAHOpacity == weeklyNakedVAHOpacity && cacheRedTailVolumeProfile[idx].WeeklyNakedVALLineStyle == weeklyNakedVALLineStyle && cacheRedTailVolumeProfile[idx].WeeklyNakedVALThickness == weeklyNakedVALThickness && cacheRedTailVolumeProfile[idx].WeeklyNakedVALOpacity == weeklyNakedVALOpacity && cacheRedTailVolumeProfile[idx].DisplayNakedLevels == displayNakedLevels && cacheRedTailVolumeProfile[idx].MaxNakedLevelsToDisplay == maxNakedLevelsToDisplay && cacheRedTailVolumeProfile[idx].DisplayWeeklyNakedLevels == displayWeeklyNakedLevels && cacheRedTailVolumeProfile[idx].MaxWeeklyNakedLevelsToDisplay == maxWeeklyNakedLevelsToDisplay && cacheRedTailVolumeProfile[idx].KeepFilledLevelsAfterSession == keepFilledLevelsAfterSession && cacheRedTailVolumeProfile[idx].RemoveAfterTouchCount == removeAfterTouchCount && cacheRedTailVolumeProfile[idx].KeepFilledWeeklyLevelsAfterWeek == keepFilledWeeklyLevelsAfterWeek && cacheRedTailVolumeProfile[idx].RemoveWeeklyAfterTouchCount == removeWeeklyAfterTouchCount && cacheRedTailVolumeProfile[idx].ShowTouchCountInLabels == showTouchCountInLabels && cacheRedTailVolumeProfile[idx].BritishDateFormat == britishDateFormat && cacheRedTailVolumeProfile[idx].PreviousDayLineWidth == previousDayLineWidth && cacheRedTailVolumeProfile[idx].ShowPriceValuesInLabels == showPriceValuesInLabels && cacheRedTailVolumeProfile[idx].LabelFontSize == labelFontSize && cacheRedTailVolumeProfile[idx].EnableDualProfileMode == enableDualProfileMode && cacheRedTailVolumeProfile[idx].WeeklyProfileWidth == weeklyProfileWidth && cacheRedTailVolumeProfile[idx].SessionProfileWidth == sessionProfileWidth && cacheRedTailVolumeProfile[idx].ProfileGap == profileGap && cacheRedTailVolumeProfile[idx].UseCustomDailySessionTimes == useCustomDailySessionTimes && cacheRedTailVolumeProfile[idx].DailySessionStartTime == dailySessionStartTime && cacheRedTailVolumeProfile[idx].DailySessionEndTime == dailySessionEndTime && cacheRedTailVolumeProfile[idx].SessionProfileStyle == sessionProfileStyle && cacheRedTailVolumeProfile[idx].SessionOutlineSmoothness == sessionOutlineSmoothness && cacheRedTailVolumeProfile[idx].WeeklyNumberOfVolumeBars == weeklyNumberOfVolumeBars && cacheRedTailVolumeProfile[idx].WeeklyBarThickness == weeklyBarThickness && cacheRedTailVolumeProfile[idx].WeeklyVolumeType == weeklyVolumeType && cacheRedTailVolumeProfile[idx].WeeklyBarOpacity == weeklyBarOpacity && cacheRedTailVolumeProfile[idx].WeeklyDisplayPoC == weeklyDisplayPoC && cacheRedTailVolumeProfile[idx].WeeklyPoCLineThickness == weeklyPoCLineThickness && cacheRedTailVolumeProfile[idx].WeeklyPoCLineOpacity == weeklyPoCLineOpacity && cacheRedTailVolumeProfile[idx].WeeklyDisplayValueArea == weeklyDisplayValueArea && cacheRedTailVolumeProfile[idx].WeeklyValueAreaPercentage == weeklyValueAreaPercentage && cacheRedTailVolumeProfile[idx].WeeklyDisplayValueAreaLines == weeklyDisplayValueAreaLines && cacheRedTailVolumeProfile[idx].WeeklyValueAreaLinesThickness == weeklyValueAreaLinesThickness && cacheRedTailVolumeProfile[idx].WeeklyValueAreaLinesOpacity == weeklyValueAreaLinesOpacity && cacheRedTailVolumeProfile[idx].WeeklyExtendPoCLine == weeklyExtendPoCLine && cacheRedTailVolumeProfile[idx].WeeklyExtendValueAreaLines == weeklyExtendValueAreaLines && cacheRedTailVolumeProfile[idx].SessionNumberOfVolumeBars == sessionNumberOfVolumeBars && cacheRedTailVolumeProfile[idx].SessionBarThickness == sessionBarThickness && cacheRedTailVolumeProfile[idx].SessionVolumeType == sessionVolumeType && cacheRedTailVolumeProfile[idx].SessionBarOpacity == sessionBarOpacity && cacheRedTailVolumeProfile[idx].SessionDisplayPoC == sessionDisplayPoC && cacheRedTailVolumeProfile[idx].SessionPoCLineThickness == sessionPoCLineThickness && cacheRedTailVolumeProfile[idx].SessionPoCLineOpacity == sessionPoCLineOpacity && cacheRedTailVolumeProfile[idx].SessionDisplayValueArea == sessionDisplayValueArea && cacheRedTailVolumeProfile[idx].SessionValueAreaPercentage == sessionValueAreaPercentage && cacheRedTailVolumeProfile[idx].SessionDisplayValueAreaLines == sessionDisplayValueAreaLines && cacheRedTailVolumeProfile[idx].SessionValueAreaLinesThickness == sessionValueAreaLinesThickness && cacheRedTailVolumeProfile[idx].SessionValueAreaLinesOpacity == sessionValueAreaLinesOpacity && cacheRedTailVolumeProfile[idx].SessionExtendPoCLine == sessionExtendPoCLine && cacheRedTailVolumeProfile[idx].SessionExtendValueAreaLines == sessionExtendValueAreaLines && cacheRedTailVolumeProfile[idx].EnableGradientFill == enableGradientFill && cacheRedTailVolumeProfile[idx].GradientIntensity == gradientIntensity && cacheRedTailVolumeProfile[idx].DisplayLVN == displayLVN && cacheRedTailVolumeProfile[idx].LVNNumberOfRows == lVNNumberOfRows && cacheRedTailVolumeProfile[idx].LVNDetectionPercent == lVNDetectionPercent && cacheRedTailVolumeProfile[idx].ShowAdjacentLVNNodes == showAdjacentLVNNodes && cacheRedTailVolumeProfile[idx].LVNFillOpacity == lVNFillOpacity && cacheRedTailVolumeProfile[idx].LVNBorderOpacity == lVNBorderOpacity && cacheRedTailVolumeProfile[idx].EnableDomdicator == enableDomdicator && cacheRedTailVolumeProfile[idx].DomdicatorWidth == domdicatorWidth && cacheRedTailVolumeProfile[idx].DomdicatorGap == domdicatorGap && cacheRedTailVolumeProfile[idx].DomMaxRightExtension == domMaxRightExtension && cacheRedTailVolumeProfile[idx].ShowDOMVolumeText == showDOMVolumeText && cacheRedTailVolumeProfile[idx].DomMaxTextSize == domMaxTextSize && cacheRedTailVolumeProfile[idx].DomMinTextSize == domMinTextSize && cacheRedTailVolumeProfile[idx].DomHistoricalOpacity == domHistoricalOpacity && cacheRedTailVolumeProfile[idx].ShowHistoricalOrders == showHistoricalOrders && cacheRedTailVolumeProfile[idx].LiveOrderTickThreshold == liveOrderTickThreshold && cacheRedTailVolumeProfile[idx].DomLiveOpacity == domLiveOpacity && cacheRedTailVolumeProfile[idx].MinimumOrdersToStart == minimumOrdersToStart && cacheRedTailVolumeProfile[idx].EnableAlerts == enableAlerts && cacheRedTailVolumeProfile[idx].AlertDistanceTicks == alertDistanceTicks && cacheRedTailVolumeProfile[idx].AlertOnPreviousDayLevels == alertOnPreviousDayLevels && cacheRedTailVolumeProfile[idx].AlertOnPreviousWeekLevels == alertOnPreviousWeekLevels && cacheRedTailVolumeProfile[idx].AlertOnNakedLevels == alertOnNakedLevels && cacheRedTailVolumeProfile[idx].AlertOnWeeklyNakedLevels == alertOnWeeklyNakedLevels && cacheRedTailVolumeProfile[idx].AlertOnOvernightLevels == alertOnOvernightLevels && cacheRedTailVolumeProfile[idx].PlayAlertSound == playAlertSound && cacheRedTailVolumeProfile[idx].AlertSoundFile == alertSoundFile && cacheRedTailVolumeProfile[idx].RearmAlertsOnNewSession == rearmAlertsOnNewSession && cacheRedTailVolumeProfile[idx].EnableMoveProfiles == enableMoveProfiles && cacheRedTailVolumeProfile[idx].ConsolidationBars == consolidationBars && cacheRedTailVolumeProfile[idx].BreakoutThresholdTicks == breakoutThresholdTicks && cacheRedTailVolumeProfile[idx].MinimumMoveSizeTicks == minimumMoveSizeTicks && cacheRedTailVolumeProfile[idx].MaxMovesToDisplay == maxMovesToDisplay && cacheRedTailVolumeProfile[idx].MoveProfileOpacity == moveProfileOpacity && cacheRedTailVolumeProfile[idx].MovePOCLineStyle == movePOCLineStyle && cacheRedTailVolumeProfile[idx].MovePOCThickness == movePOCThickness && cacheRedTailVolumeProfile[idx].MoveVALineStyle == moveVALineStyle && cacheRedTailVolumeProfile[idx].MoveVAThickness == moveVAThickness && cacheRedTailVolumeProfile[idx].MoveNumberOfVolumeBars == moveNumberOfVolumeBars && cacheRedTailVolumeProfile[idx].MoveValueAreaPercentage == moveValueAreaPercentage && cacheRedTailVolumeProfile[idx].MoveVALinesOpacity == moveVALinesOpacity && cacheRedTailVolumeProfile[idx].EnableCandleProfiles == enableCandleProfiles && cacheRedTailVolumeProfile[idx].CandleProfileWidth == candleProfileWidth && cacheRedTailVolumeProfile[idx].CandleProfileOpacity == candleProfileOpacity && cacheRedTailVolumeProfile[idx].CandleProfileVolumeType == candleProfileVolumeType && cacheRedTailVolumeProfile[idx].CandleProfileShowPOC == candleProfileShowPOC && cacheRedTailVolumeProfile[idx].CandleProfileShowVA == candleProfileShowVA && cacheRedTailVolumeProfile[idx].CandleProfileVAPercent == candleProfileVAPercent && cacheRedTailVolumeProfile[idx].CandleProfileShowVALines == candleProfileShowVALines && cacheRedTailVolumeProfile[idx].CandleVALinesThickness == candleVALinesThickness && cacheRedTailVolumeProfile[idx].CandleVALinesOpacity == candleVALinesOpacity && cacheRedTailVolumeProfile[idx].PdUseIndividualStyles == pdUseIndividualStyles && cacheRedTailVolumeProfile[idx].PdSharedLineStyle == pdSharedLineStyle && cacheRedTailVolumeProfile[idx].PdSharedThickness == pdSharedThickness && cacheRedTailVolumeProfile[idx].PdSharedOpacity == pdSharedOpacity && cacheRedTailVolumeProfile[idx].PwUseIndividualStyles == pwUseIndividualStyles && cacheRedTailVolumeProfile[idx].PwSharedLineStyle == pwSharedLineStyle && cacheRedTailVolumeProfile[idx].PwSharedThickness == pwSharedThickness && cacheRedTailVolumeProfile[idx].PwSharedOpacity == pwSharedOpacity && cacheRedTailVolumeProfile[idx].OnUseIndividualStyles == onUseIndividualStyles && cacheRedTailVolumeProfile[idx].OnSharedLineStyle == onSharedLineStyle && cacheRedTailVolumeProfile[idx].OnSharedThickness == onSharedThickness && cacheRedTailVolumeProfile[idx].OnSharedOpacity == onSharedOpacity && cacheRedTailVolumeProfile[idx].EqualsInput(input))
+						return cacheRedTailVolumeProfile[idx];
+			return CacheIndicator<RedTail.RedTailVolumeProfile>(new RedTail.RedTailVolumeProfile(){ ProfileMode = profileMode, Alignment = alignment, WeeksLookback = weeksLookback, SessionsLookback = sessionsLookback, MonthsLookback = monthsLookback, CompositeRangeType = compositeRangeType, CompositeDaysBack = compositeDaysBack, CompositeWeeksBack = compositeWeeksBack, CompositeMonthsBack = compositeMonthsBack, CompositeCustomStartDate = compositeCustomStartDate, CompositeCustomEndDate = compositeCustomEndDate, UseCustomSessionTimes = useCustomSessionTimes, SessionStartTime = sessionStartTime, SessionEndTime = sessionEndTime, NumberOfVolumeBars = numberOfVolumeBars, BarThickness = barThickness, ProfileWidth = profileWidth, VolumeType = volumeType, BarOpacity = barOpacity, DisplayPoC = displayPoC, PoCLineThickness = poCLineThickness, PoCLineStyle = poCLineStyle, PoCLineOpacity = poCLineOpacity, ExtendPoCLine = extendPoCLine, DisplayValueArea = displayValueArea, ValueAreaPercentage = valueAreaPercentage, DisplayValueAreaLines = displayValueAreaLines, ValueAreaLinesThickness = valueAreaLinesThickness, ValueAreaLineStyle = valueAreaLineStyle, ValueAreaLinesOpacity = valueAreaLinesOpacity, ExtendValueAreaLines = extendValueAreaLines, EnableDebugPrints = enableDebugPrints, DisplayPreviousDayPOC = displayPreviousDayPOC, PdPOCLineStyle = pdPOCLineStyle, PdPOCThickness = pdPOCThickness, PdPOCOpacity = pdPOCOpacity, DisplayPreviousDayVAH = displayPreviousDayVAH, PdVAHLineStyle = pdVAHLineStyle, PdVAHThickness = pdVAHThickness, PdVAHOpacity = pdVAHOpacity, DisplayPreviousDayVAL = displayPreviousDayVAL, PdVALLineStyle = pdVALLineStyle, PdVALThickness = pdVALThickness, PdVALOpacity = pdVALOpacity, DisplayPreviousDayHigh = displayPreviousDayHigh, PdHighLineStyle = pdHighLineStyle, PdHighThickness = pdHighThickness, PdHighOpacity = pdHighOpacity, DisplayPreviousDayLow = displayPreviousDayLow, PdLowLineStyle = pdLowLineStyle, PdLowThickness = pdLowThickness, PdLowOpacity = pdLowOpacity, DisplayPreviousWeekPOC = displayPreviousWeekPOC, PwPOCLineStyle = pwPOCLineStyle, PwPOCThickness = pwPOCThickness, PwPOCOpacity = pwPOCOpacity, DisplayPreviousWeekVAH = displayPreviousWeekVAH, PwVAHLineStyle = pwVAHLineStyle, PwVAHThickness = pwVAHThickness, PwVAHOpacity = pwVAHOpacity, DisplayPreviousWeekVAL = displayPreviousWeekVAL, PwVALLineStyle = pwVALLineStyle, PwVALThickness = pwVALThickness, PwVALOpacity = pwVALOpacity, DisplayPreviousWeekHigh = displayPreviousWeekHigh, PwHighLineStyle = pwHighLineStyle, PwHighThickness = pwHighThickness, PwHighOpacity = pwHighOpacity, DisplayPreviousWeekLow = displayPreviousWeekLow, PwLowLineStyle = pwLowLineStyle, PwLowThickness = pwLowThickness, PwLowOpacity = pwLowOpacity, DisplayOvernightPOC = displayOvernightPOC, OvernightPOCLineStyle = overnightPOCLineStyle, OvernightPOCThickness = overnightPOCThickness, OvernightPOCOpacity = overnightPOCOpacity, DisplayOvernightVAH = displayOvernightVAH, OvernightVAHLineStyle = overnightVAHLineStyle, OvernightVAHThickness = overnightVAHThickness, OvernightVAHOpacity = overnightVAHOpacity, DisplayOvernightVAL = displayOvernightVAL, OvernightVALLineStyle = overnightVALLineStyle, OvernightVALThickness = overnightVALThickness, OvernightVALOpacity = overnightVALOpacity, DisplayOvernightHigh = displayOvernightHigh, OvernightHighLineStyle = overnightHighLineStyle, OvernightHighThickness = overnightHighThickness, OvernightHighOpacity = overnightHighOpacity, DisplayOvernightLow = displayOvernightLow, OvernightLowLineStyle = overnightLowLineStyle, OvernightLowThickness = overnightLowThickness, OvernightLowOpacity = overnightLowOpacity, OvernightStartTime = overnightStartTime, OvernightEndTime = overnightEndTime, NakedPOCLineStyle = nakedPOCLineStyle, NakedPOCThickness = nakedPOCThickness, NakedPOCOpacity = nakedPOCOpacity, NakedVAHLineStyle = nakedVAHLineStyle, NakedVAHThickness = nakedVAHThickness, NakedVAHOpacity = nakedVAHOpacity, NakedVALLineStyle = nakedVALLineStyle, NakedVALThickness = nakedVALThickness, NakedVALOpacity = nakedVALOpacity, WeeklyNakedPOCLineStyle = weeklyNakedPOCLineStyle, WeeklyNakedPOCThickness = weeklyNakedPOCThickness, WeeklyNakedPOCOpacity = weeklyNakedPOCOpacity, WeeklyNakedVAHLineStyle = weeklyNakedVAHLineStyle, WeeklyNakedVAHThickness = weeklyNakedVAHThickness, WeeklyNakedVAHOpacity = weeklyNakedVAHOpacity, WeeklyNakedVALLineStyle = weeklyNakedVALLineStyle, WeeklyNakedVALThickness = weeklyNakedVALThickness, WeeklyNakedVALOpacity = weeklyNakedVALOpacity, DisplayNakedLevels = displayNakedLevels, MaxNakedLevelsToDisplay = maxNakedLevelsToDisplay, DisplayWeeklyNakedLevels = displayWeeklyNakedLevels, MaxWeeklyNakedLevelsToDisplay = maxWeeklyNakedLevelsToDisplay, KeepFilledLevelsAfterSession = keepFilledLevelsAfterSession, RemoveAfterTouchCount = removeAfterTouchCount, KeepFilledWeeklyLevelsAfterWeek = keepFilledWeeklyLevelsAfterWeek, RemoveWeeklyAfterTouchCount = removeWeeklyAfterTouchCount, ShowTouchCountInLabels = showTouchCountInLabels, BritishDateFormat = britishDateFormat, PreviousDayLineWidth = previousDayLineWidth, ShowPriceValuesInLabels = showPriceValuesInLabels, LabelFontSize = labelFontSize, EnableDualProfileMode = enableDualProfileMode, WeeklyProfileWidth = weeklyProfileWidth, SessionProfileWidth = sessionProfileWidth, ProfileGap = profileGap, UseCustomDailySessionTimes = useCustomDailySessionTimes, DailySessionStartTime = dailySessionStartTime, DailySessionEndTime = dailySessionEndTime, SessionProfileStyle = sessionProfileStyle, SessionOutlineSmoothness = sessionOutlineSmoothness, WeeklyNumberOfVolumeBars = weeklyNumberOfVolumeBars, WeeklyBarThickness = weeklyBarThickness, WeeklyVolumeType = weeklyVolumeType, WeeklyBarOpacity = weeklyBarOpacity, WeeklyDisplayPoC = weeklyDisplayPoC, WeeklyPoCLineThickness = weeklyPoCLineThickness, WeeklyPoCLineOpacity = weeklyPoCLineOpacity, WeeklyDisplayValueArea = weeklyDisplayValueArea, WeeklyValueAreaPercentage = weeklyValueAreaPercentage, WeeklyDisplayValueAreaLines = weeklyDisplayValueAreaLines, WeeklyValueAreaLinesThickness = weeklyValueAreaLinesThickness, WeeklyValueAreaLinesOpacity = weeklyValueAreaLinesOpacity, WeeklyExtendPoCLine = weeklyExtendPoCLine, WeeklyExtendValueAreaLines = weeklyExtendValueAreaLines, SessionNumberOfVolumeBars = sessionNumberOfVolumeBars, SessionBarThickness = sessionBarThickness, SessionVolumeType = sessionVolumeType, SessionBarOpacity = sessionBarOpacity, SessionDisplayPoC = sessionDisplayPoC, SessionPoCLineThickness = sessionPoCLineThickness, SessionPoCLineOpacity = sessionPoCLineOpacity, SessionDisplayValueArea = sessionDisplayValueArea, SessionValueAreaPercentage = sessionValueAreaPercentage, SessionDisplayValueAreaLines = sessionDisplayValueAreaLines, SessionValueAreaLinesThickness = sessionValueAreaLinesThickness, SessionValueAreaLinesOpacity = sessionValueAreaLinesOpacity, SessionExtendPoCLine = sessionExtendPoCLine, SessionExtendValueAreaLines = sessionExtendValueAreaLines, EnableGradientFill = enableGradientFill, GradientIntensity = gradientIntensity, DisplayLVN = displayLVN, LVNNumberOfRows = lVNNumberOfRows, LVNDetectionPercent = lVNDetectionPercent, ShowAdjacentLVNNodes = showAdjacentLVNNodes, LVNFillOpacity = lVNFillOpacity, LVNBorderOpacity = lVNBorderOpacity, EnableDomdicator = enableDomdicator, DomdicatorWidth = domdicatorWidth, DomdicatorGap = domdicatorGap, DomMaxRightExtension = domMaxRightExtension, ShowDOMVolumeText = showDOMVolumeText, DomMaxTextSize = domMaxTextSize, DomMinTextSize = domMinTextSize, DomHistoricalOpacity = domHistoricalOpacity, ShowHistoricalOrders = showHistoricalOrders, LiveOrderTickThreshold = liveOrderTickThreshold, DomLiveOpacity = domLiveOpacity, MinimumOrdersToStart = minimumOrdersToStart, EnableAlerts = enableAlerts, AlertDistanceTicks = alertDistanceTicks, AlertOnPreviousDayLevels = alertOnPreviousDayLevels, AlertOnPreviousWeekLevels = alertOnPreviousWeekLevels, AlertOnNakedLevels = alertOnNakedLevels, AlertOnWeeklyNakedLevels = alertOnWeeklyNakedLevels, AlertOnOvernightLevels = alertOnOvernightLevels, PlayAlertSound = playAlertSound, AlertSoundFile = alertSoundFile, RearmAlertsOnNewSession = rearmAlertsOnNewSession, EnableMoveProfiles = enableMoveProfiles, ConsolidationBars = consolidationBars, BreakoutThresholdTicks = breakoutThresholdTicks, MinimumMoveSizeTicks = minimumMoveSizeTicks, MaxMovesToDisplay = maxMovesToDisplay, MoveProfileOpacity = moveProfileOpacity, MovePOCLineStyle = movePOCLineStyle, MovePOCThickness = movePOCThickness, MoveVALineStyle = moveVALineStyle, MoveVAThickness = moveVAThickness, MoveNumberOfVolumeBars = moveNumberOfVolumeBars, MoveValueAreaPercentage = moveValueAreaPercentage, MoveVALinesOpacity = moveVALinesOpacity, EnableCandleProfiles = enableCandleProfiles, CandleProfileWidth = candleProfileWidth, CandleProfileOpacity = candleProfileOpacity, CandleProfileVolumeType = candleProfileVolumeType, CandleProfileShowPOC = candleProfileShowPOC, CandleProfileShowVA = candleProfileShowVA, CandleProfileVAPercent = candleProfileVAPercent, CandleProfileShowVALines = candleProfileShowVALines, CandleVALinesThickness = candleVALinesThickness, CandleVALinesOpacity = candleVALinesOpacity, PdUseIndividualStyles = pdUseIndividualStyles, PdSharedLineStyle = pdSharedLineStyle, PdSharedThickness = pdSharedThickness, PdSharedOpacity = pdSharedOpacity, PwUseIndividualStyles = pwUseIndividualStyles, PwSharedLineStyle = pwSharedLineStyle, PwSharedThickness = pwSharedThickness, PwSharedOpacity = pwSharedOpacity, OnUseIndividualStyles = onUseIndividualStyles, OnSharedLineStyle = onSharedLineStyle, OnSharedThickness = onSharedThickness, OnSharedOpacity = onSharedOpacity }, input, ref cacheRedTailVolumeProfile);
 		}
 	}
 }
@@ -9843,14 +9987,14 @@ namespace NinjaTrader.NinjaScript.MarketAnalyzerColumns
 {
 	public partial class MarketAnalyzerColumn : MarketAnalyzerColumnBase
 	{
-		public Indicators.RedTailVolumeProfile_V2 RedTailVolumeProfile_V2(ProfileModeEnum profileMode, ProfileAlignment alignment, int weeksLookback, int sessionsLookback, int monthsLookback, CompositeDateRangeType compositeRangeType, int compositeDaysBack, int compositeWeeksBack, int compositeMonthsBack, DateTime compositeCustomStartDate, DateTime compositeCustomEndDate, bool useCustomSessionTimes, int sessionStartTime, int sessionEndTime, int numberOfVolumeBars, int barThickness, int profileWidth, VolumeTypeEnum volumeType, int barOpacity, bool displayPoC, int poCLineThickness, DashStyleHelper poCLineStyle, int poCLineOpacity, bool extendPoCLine, bool displayValueArea, int valueAreaPercentage, bool displayValueAreaLines, int valueAreaLinesThickness, DashStyleHelper valueAreaLineStyle, int valueAreaLinesOpacity, bool extendValueAreaLines, bool enableDebugPrints, bool displayPreviousDayPOC, DashStyleHelper pdPOCLineStyle, int pdPOCThickness, int pdPOCOpacity, bool displayPreviousDayVAH, DashStyleHelper pdVAHLineStyle, int pdVAHThickness, int pdVAHOpacity, bool displayPreviousDayVAL, DashStyleHelper pdVALLineStyle, int pdVALThickness, int pdVALOpacity, bool displayPreviousDayHigh, DashStyleHelper pdHighLineStyle, int pdHighThickness, int pdHighOpacity, bool displayPreviousDayLow, DashStyleHelper pdLowLineStyle, int pdLowThickness, int pdLowOpacity, bool displayPreviousWeekPOC, DashStyleHelper pwPOCLineStyle, int pwPOCThickness, int pwPOCOpacity, bool displayPreviousWeekVAH, DashStyleHelper pwVAHLineStyle, int pwVAHThickness, int pwVAHOpacity, bool displayPreviousWeekVAL, DashStyleHelper pwVALLineStyle, int pwVALThickness, int pwVALOpacity, bool displayPreviousWeekHigh, DashStyleHelper pwHighLineStyle, int pwHighThickness, int pwHighOpacity, bool displayPreviousWeekLow, DashStyleHelper pwLowLineStyle, int pwLowThickness, int pwLowOpacity, bool displayOvernightPOC, DashStyleHelper overnightPOCLineStyle, int overnightPOCThickness, int overnightPOCOpacity, bool displayOvernightVAH, DashStyleHelper overnightVAHLineStyle, int overnightVAHThickness, int overnightVAHOpacity, bool displayOvernightVAL, DashStyleHelper overnightVALLineStyle, int overnightVALThickness, int overnightVALOpacity, bool displayOvernightHigh, DashStyleHelper overnightHighLineStyle, int overnightHighThickness, int overnightHighOpacity, bool displayOvernightLow, DashStyleHelper overnightLowLineStyle, int overnightLowThickness, int overnightLowOpacity, int overnightStartTime, int overnightEndTime, DashStyleHelper nakedPOCLineStyle, int nakedPOCThickness, int nakedPOCOpacity, DashStyleHelper nakedVAHLineStyle, int nakedVAHThickness, int nakedVAHOpacity, DashStyleHelper nakedVALLineStyle, int nakedVALThickness, int nakedVALOpacity, DashStyleHelper weeklyNakedPOCLineStyle, int weeklyNakedPOCThickness, int weeklyNakedPOCOpacity, DashStyleHelper weeklyNakedVAHLineStyle, int weeklyNakedVAHThickness, int weeklyNakedVAHOpacity, DashStyleHelper weeklyNakedVALLineStyle, int weeklyNakedVALThickness, int weeklyNakedVALOpacity, bool displayNakedLevels, int maxNakedLevelsToDisplay, bool displayWeeklyNakedLevels, int maxWeeklyNakedLevelsToDisplay, bool keepFilledLevelsAfterSession, int removeAfterTouchCount, bool keepFilledWeeklyLevelsAfterWeek, int removeWeeklyAfterTouchCount, bool showTouchCountInLabels, bool britishDateFormat, int previousDayLineWidth, bool showPriceValuesInLabels, int labelFontSize, bool enableDualProfileMode, int weeklyProfileWidth, int sessionProfileWidth, int profileGap, bool useCustomDailySessionTimes, int dailySessionStartTime, int dailySessionEndTime, SessionProfileStyleEnum sessionProfileStyle, int sessionOutlineSmoothness, int weeklyNumberOfVolumeBars, int weeklyBarThickness, VolumeTypeEnum weeklyVolumeType, int weeklyBarOpacity, bool weeklyDisplayPoC, int weeklyPoCLineThickness, int weeklyPoCLineOpacity, bool weeklyDisplayValueArea, int weeklyValueAreaPercentage, bool weeklyDisplayValueAreaLines, int weeklyValueAreaLinesThickness, int weeklyValueAreaLinesOpacity, bool weeklyExtendPoCLine, bool weeklyExtendValueAreaLines, int sessionNumberOfVolumeBars, int sessionBarThickness, VolumeTypeEnum sessionVolumeType, int sessionBarOpacity, bool sessionDisplayPoC, int sessionPoCLineThickness, int sessionPoCLineOpacity, bool sessionDisplayValueArea, int sessionValueAreaPercentage, bool sessionDisplayValueAreaLines, int sessionValueAreaLinesThickness, int sessionValueAreaLinesOpacity, bool sessionExtendPoCLine, bool sessionExtendValueAreaLines, bool enableGradientFill, int gradientIntensity, bool displayLVN, int lVNNumberOfRows, int lVNDetectionPercent, bool showAdjacentLVNNodes, int lVNFillOpacity, int lVNBorderOpacity, bool enableDomdicator, int domdicatorWidth, int domdicatorGap, int domMaxRightExtension, bool showDOMVolumeText, float domMaxTextSize, float domMinTextSize, float domHistoricalOpacity, bool showHistoricalOrders, int liveOrderTickThreshold, float domLiveOpacity, int minimumOrdersToStart, bool enableAlerts, int alertDistanceTicks, bool alertOnPreviousDayLevels, bool alertOnPreviousWeekLevels, bool alertOnNakedLevels, bool alertOnWeeklyNakedLevels, bool alertOnOvernightLevels, bool playAlertSound, string alertSoundFile, bool rearmAlertsOnNewSession, bool enableMoveProfiles, int consolidationBars, int breakoutThresholdTicks, int minimumMoveSizeTicks, int maxMovesToDisplay, int moveProfileOpacity, DashStyleHelper movePOCLineStyle, int movePOCThickness, DashStyleHelper moveVALineStyle, int moveVAThickness, int moveNumberOfVolumeBars, int moveValueAreaPercentage, int moveVALinesOpacity, bool enableCandleProfiles, int candleProfileWidth, int candleProfileOpacity, VolumeTypeEnum candleProfileVolumeType, bool candleProfileShowPOC, bool candleProfileShowVA, int candleProfileVAPercent, bool candleProfileShowVALines, int candleVALinesThickness, int candleVALinesOpacity)
+		public Indicators.RedTail.RedTailVolumeProfile RedTailVolumeProfile(ProfileModeEnum profileMode, ProfileAlignment alignment, int weeksLookback, int sessionsLookback, int monthsLookback, CompositeDateRangeType compositeRangeType, int compositeDaysBack, int compositeWeeksBack, int compositeMonthsBack, DateTime compositeCustomStartDate, DateTime compositeCustomEndDate, bool useCustomSessionTimes, int sessionStartTime, int sessionEndTime, int numberOfVolumeBars, int barThickness, int profileWidth, VolumeTypeEnum volumeType, int barOpacity, bool displayPoC, int poCLineThickness, DashStyleHelper poCLineStyle, int poCLineOpacity, bool extendPoCLine, bool displayValueArea, int valueAreaPercentage, bool displayValueAreaLines, int valueAreaLinesThickness, DashStyleHelper valueAreaLineStyle, int valueAreaLinesOpacity, bool extendValueAreaLines, bool enableDebugPrints, bool displayPreviousDayPOC, DashStyleHelper pdPOCLineStyle, int pdPOCThickness, int pdPOCOpacity, bool displayPreviousDayVAH, DashStyleHelper pdVAHLineStyle, int pdVAHThickness, int pdVAHOpacity, bool displayPreviousDayVAL, DashStyleHelper pdVALLineStyle, int pdVALThickness, int pdVALOpacity, bool displayPreviousDayHigh, DashStyleHelper pdHighLineStyle, int pdHighThickness, int pdHighOpacity, bool displayPreviousDayLow, DashStyleHelper pdLowLineStyle, int pdLowThickness, int pdLowOpacity, bool displayPreviousWeekPOC, DashStyleHelper pwPOCLineStyle, int pwPOCThickness, int pwPOCOpacity, bool displayPreviousWeekVAH, DashStyleHelper pwVAHLineStyle, int pwVAHThickness, int pwVAHOpacity, bool displayPreviousWeekVAL, DashStyleHelper pwVALLineStyle, int pwVALThickness, int pwVALOpacity, bool displayPreviousWeekHigh, DashStyleHelper pwHighLineStyle, int pwHighThickness, int pwHighOpacity, bool displayPreviousWeekLow, DashStyleHelper pwLowLineStyle, int pwLowThickness, int pwLowOpacity, bool displayOvernightPOC, DashStyleHelper overnightPOCLineStyle, int overnightPOCThickness, int overnightPOCOpacity, bool displayOvernightVAH, DashStyleHelper overnightVAHLineStyle, int overnightVAHThickness, int overnightVAHOpacity, bool displayOvernightVAL, DashStyleHelper overnightVALLineStyle, int overnightVALThickness, int overnightVALOpacity, bool displayOvernightHigh, DashStyleHelper overnightHighLineStyle, int overnightHighThickness, int overnightHighOpacity, bool displayOvernightLow, DashStyleHelper overnightLowLineStyle, int overnightLowThickness, int overnightLowOpacity, int overnightStartTime, int overnightEndTime, DashStyleHelper nakedPOCLineStyle, int nakedPOCThickness, int nakedPOCOpacity, DashStyleHelper nakedVAHLineStyle, int nakedVAHThickness, int nakedVAHOpacity, DashStyleHelper nakedVALLineStyle, int nakedVALThickness, int nakedVALOpacity, DashStyleHelper weeklyNakedPOCLineStyle, int weeklyNakedPOCThickness, int weeklyNakedPOCOpacity, DashStyleHelper weeklyNakedVAHLineStyle, int weeklyNakedVAHThickness, int weeklyNakedVAHOpacity, DashStyleHelper weeklyNakedVALLineStyle, int weeklyNakedVALThickness, int weeklyNakedVALOpacity, bool displayNakedLevels, int maxNakedLevelsToDisplay, bool displayWeeklyNakedLevels, int maxWeeklyNakedLevelsToDisplay, bool keepFilledLevelsAfterSession, int removeAfterTouchCount, bool keepFilledWeeklyLevelsAfterWeek, int removeWeeklyAfterTouchCount, bool showTouchCountInLabels, bool britishDateFormat, int previousDayLineWidth, bool showPriceValuesInLabels, int labelFontSize, bool enableDualProfileMode, int weeklyProfileWidth, int sessionProfileWidth, int profileGap, bool useCustomDailySessionTimes, int dailySessionStartTime, int dailySessionEndTime, SessionProfileStyleEnum sessionProfileStyle, int sessionOutlineSmoothness, int weeklyNumberOfVolumeBars, int weeklyBarThickness, VolumeTypeEnum weeklyVolumeType, int weeklyBarOpacity, bool weeklyDisplayPoC, int weeklyPoCLineThickness, int weeklyPoCLineOpacity, bool weeklyDisplayValueArea, int weeklyValueAreaPercentage, bool weeklyDisplayValueAreaLines, int weeklyValueAreaLinesThickness, int weeklyValueAreaLinesOpacity, bool weeklyExtendPoCLine, bool weeklyExtendValueAreaLines, int sessionNumberOfVolumeBars, int sessionBarThickness, VolumeTypeEnum sessionVolumeType, int sessionBarOpacity, bool sessionDisplayPoC, int sessionPoCLineThickness, int sessionPoCLineOpacity, bool sessionDisplayValueArea, int sessionValueAreaPercentage, bool sessionDisplayValueAreaLines, int sessionValueAreaLinesThickness, int sessionValueAreaLinesOpacity, bool sessionExtendPoCLine, bool sessionExtendValueAreaLines, bool enableGradientFill, int gradientIntensity, bool displayLVN, int lVNNumberOfRows, int lVNDetectionPercent, bool showAdjacentLVNNodes, int lVNFillOpacity, int lVNBorderOpacity, bool enableDomdicator, int domdicatorWidth, int domdicatorGap, int domMaxRightExtension, bool showDOMVolumeText, float domMaxTextSize, float domMinTextSize, float domHistoricalOpacity, bool showHistoricalOrders, int liveOrderTickThreshold, float domLiveOpacity, int minimumOrdersToStart, bool enableAlerts, int alertDistanceTicks, bool alertOnPreviousDayLevels, bool alertOnPreviousWeekLevels, bool alertOnNakedLevels, bool alertOnWeeklyNakedLevels, bool alertOnOvernightLevels, bool playAlertSound, string alertSoundFile, bool rearmAlertsOnNewSession, bool enableMoveProfiles, int consolidationBars, int breakoutThresholdTicks, int minimumMoveSizeTicks, int maxMovesToDisplay, int moveProfileOpacity, DashStyleHelper movePOCLineStyle, int movePOCThickness, DashStyleHelper moveVALineStyle, int moveVAThickness, int moveNumberOfVolumeBars, int moveValueAreaPercentage, int moveVALinesOpacity, bool enableCandleProfiles, int candleProfileWidth, int candleProfileOpacity, VolumeTypeEnum candleProfileVolumeType, bool candleProfileShowPOC, bool candleProfileShowVA, int candleProfileVAPercent, bool candleProfileShowVALines, int candleVALinesThickness, int candleVALinesOpacity, bool pdUseIndividualStyles, DashStyleHelper pdSharedLineStyle, int pdSharedThickness, int pdSharedOpacity, bool pwUseIndividualStyles, DashStyleHelper pwSharedLineStyle, int pwSharedThickness, int pwSharedOpacity, bool onUseIndividualStyles, DashStyleHelper onSharedLineStyle, int onSharedThickness, int onSharedOpacity)
 		{
-			return indicator.RedTailVolumeProfile_V2(Input, profileMode, alignment, weeksLookback, sessionsLookback, monthsLookback, compositeRangeType, compositeDaysBack, compositeWeeksBack, compositeMonthsBack, compositeCustomStartDate, compositeCustomEndDate, useCustomSessionTimes, sessionStartTime, sessionEndTime, numberOfVolumeBars, barThickness, profileWidth, volumeType, barOpacity, displayPoC, poCLineThickness, poCLineStyle, poCLineOpacity, extendPoCLine, displayValueArea, valueAreaPercentage, displayValueAreaLines, valueAreaLinesThickness, valueAreaLineStyle, valueAreaLinesOpacity, extendValueAreaLines, enableDebugPrints, displayPreviousDayPOC, pdPOCLineStyle, pdPOCThickness, pdPOCOpacity, displayPreviousDayVAH, pdVAHLineStyle, pdVAHThickness, pdVAHOpacity, displayPreviousDayVAL, pdVALLineStyle, pdVALThickness, pdVALOpacity, displayPreviousDayHigh, pdHighLineStyle, pdHighThickness, pdHighOpacity, displayPreviousDayLow, pdLowLineStyle, pdLowThickness, pdLowOpacity, displayPreviousWeekPOC, pwPOCLineStyle, pwPOCThickness, pwPOCOpacity, displayPreviousWeekVAH, pwVAHLineStyle, pwVAHThickness, pwVAHOpacity, displayPreviousWeekVAL, pwVALLineStyle, pwVALThickness, pwVALOpacity, displayPreviousWeekHigh, pwHighLineStyle, pwHighThickness, pwHighOpacity, displayPreviousWeekLow, pwLowLineStyle, pwLowThickness, pwLowOpacity, displayOvernightPOC, overnightPOCLineStyle, overnightPOCThickness, overnightPOCOpacity, displayOvernightVAH, overnightVAHLineStyle, overnightVAHThickness, overnightVAHOpacity, displayOvernightVAL, overnightVALLineStyle, overnightVALThickness, overnightVALOpacity, displayOvernightHigh, overnightHighLineStyle, overnightHighThickness, overnightHighOpacity, displayOvernightLow, overnightLowLineStyle, overnightLowThickness, overnightLowOpacity, overnightStartTime, overnightEndTime, nakedPOCLineStyle, nakedPOCThickness, nakedPOCOpacity, nakedVAHLineStyle, nakedVAHThickness, nakedVAHOpacity, nakedVALLineStyle, nakedVALThickness, nakedVALOpacity, weeklyNakedPOCLineStyle, weeklyNakedPOCThickness, weeklyNakedPOCOpacity, weeklyNakedVAHLineStyle, weeklyNakedVAHThickness, weeklyNakedVAHOpacity, weeklyNakedVALLineStyle, weeklyNakedVALThickness, weeklyNakedVALOpacity, displayNakedLevels, maxNakedLevelsToDisplay, displayWeeklyNakedLevels, maxWeeklyNakedLevelsToDisplay, keepFilledLevelsAfterSession, removeAfterTouchCount, keepFilledWeeklyLevelsAfterWeek, removeWeeklyAfterTouchCount, showTouchCountInLabels, britishDateFormat, previousDayLineWidth, showPriceValuesInLabels, labelFontSize, enableDualProfileMode, weeklyProfileWidth, sessionProfileWidth, profileGap, useCustomDailySessionTimes, dailySessionStartTime, dailySessionEndTime, sessionProfileStyle, sessionOutlineSmoothness, weeklyNumberOfVolumeBars, weeklyBarThickness, weeklyVolumeType, weeklyBarOpacity, weeklyDisplayPoC, weeklyPoCLineThickness, weeklyPoCLineOpacity, weeklyDisplayValueArea, weeklyValueAreaPercentage, weeklyDisplayValueAreaLines, weeklyValueAreaLinesThickness, weeklyValueAreaLinesOpacity, weeklyExtendPoCLine, weeklyExtendValueAreaLines, sessionNumberOfVolumeBars, sessionBarThickness, sessionVolumeType, sessionBarOpacity, sessionDisplayPoC, sessionPoCLineThickness, sessionPoCLineOpacity, sessionDisplayValueArea, sessionValueAreaPercentage, sessionDisplayValueAreaLines, sessionValueAreaLinesThickness, sessionValueAreaLinesOpacity, sessionExtendPoCLine, sessionExtendValueAreaLines, enableGradientFill, gradientIntensity, displayLVN, lVNNumberOfRows, lVNDetectionPercent, showAdjacentLVNNodes, lVNFillOpacity, lVNBorderOpacity, enableDomdicator, domdicatorWidth, domdicatorGap, domMaxRightExtension, showDOMVolumeText, domMaxTextSize, domMinTextSize, domHistoricalOpacity, showHistoricalOrders, liveOrderTickThreshold, domLiveOpacity, minimumOrdersToStart, enableAlerts, alertDistanceTicks, alertOnPreviousDayLevels, alertOnPreviousWeekLevels, alertOnNakedLevels, alertOnWeeklyNakedLevels, alertOnOvernightLevels, playAlertSound, alertSoundFile, rearmAlertsOnNewSession, enableMoveProfiles, consolidationBars, breakoutThresholdTicks, minimumMoveSizeTicks, maxMovesToDisplay, moveProfileOpacity, movePOCLineStyle, movePOCThickness, moveVALineStyle, moveVAThickness, moveNumberOfVolumeBars, moveValueAreaPercentage, moveVALinesOpacity, enableCandleProfiles, candleProfileWidth, candleProfileOpacity, candleProfileVolumeType, candleProfileShowPOC, candleProfileShowVA, candleProfileVAPercent, candleProfileShowVALines, candleVALinesThickness, candleVALinesOpacity);
+			return indicator.RedTailVolumeProfile(Input, profileMode, alignment, weeksLookback, sessionsLookback, monthsLookback, compositeRangeType, compositeDaysBack, compositeWeeksBack, compositeMonthsBack, compositeCustomStartDate, compositeCustomEndDate, useCustomSessionTimes, sessionStartTime, sessionEndTime, numberOfVolumeBars, barThickness, profileWidth, volumeType, barOpacity, displayPoC, poCLineThickness, poCLineStyle, poCLineOpacity, extendPoCLine, displayValueArea, valueAreaPercentage, displayValueAreaLines, valueAreaLinesThickness, valueAreaLineStyle, valueAreaLinesOpacity, extendValueAreaLines, enableDebugPrints, displayPreviousDayPOC, pdPOCLineStyle, pdPOCThickness, pdPOCOpacity, displayPreviousDayVAH, pdVAHLineStyle, pdVAHThickness, pdVAHOpacity, displayPreviousDayVAL, pdVALLineStyle, pdVALThickness, pdVALOpacity, displayPreviousDayHigh, pdHighLineStyle, pdHighThickness, pdHighOpacity, displayPreviousDayLow, pdLowLineStyle, pdLowThickness, pdLowOpacity, displayPreviousWeekPOC, pwPOCLineStyle, pwPOCThickness, pwPOCOpacity, displayPreviousWeekVAH, pwVAHLineStyle, pwVAHThickness, pwVAHOpacity, displayPreviousWeekVAL, pwVALLineStyle, pwVALThickness, pwVALOpacity, displayPreviousWeekHigh, pwHighLineStyle, pwHighThickness, pwHighOpacity, displayPreviousWeekLow, pwLowLineStyle, pwLowThickness, pwLowOpacity, displayOvernightPOC, overnightPOCLineStyle, overnightPOCThickness, overnightPOCOpacity, displayOvernightVAH, overnightVAHLineStyle, overnightVAHThickness, overnightVAHOpacity, displayOvernightVAL, overnightVALLineStyle, overnightVALThickness, overnightVALOpacity, displayOvernightHigh, overnightHighLineStyle, overnightHighThickness, overnightHighOpacity, displayOvernightLow, overnightLowLineStyle, overnightLowThickness, overnightLowOpacity, overnightStartTime, overnightEndTime, nakedPOCLineStyle, nakedPOCThickness, nakedPOCOpacity, nakedVAHLineStyle, nakedVAHThickness, nakedVAHOpacity, nakedVALLineStyle, nakedVALThickness, nakedVALOpacity, weeklyNakedPOCLineStyle, weeklyNakedPOCThickness, weeklyNakedPOCOpacity, weeklyNakedVAHLineStyle, weeklyNakedVAHThickness, weeklyNakedVAHOpacity, weeklyNakedVALLineStyle, weeklyNakedVALThickness, weeklyNakedVALOpacity, displayNakedLevels, maxNakedLevelsToDisplay, displayWeeklyNakedLevels, maxWeeklyNakedLevelsToDisplay, keepFilledLevelsAfterSession, removeAfterTouchCount, keepFilledWeeklyLevelsAfterWeek, removeWeeklyAfterTouchCount, showTouchCountInLabels, britishDateFormat, previousDayLineWidth, showPriceValuesInLabels, labelFontSize, enableDualProfileMode, weeklyProfileWidth, sessionProfileWidth, profileGap, useCustomDailySessionTimes, dailySessionStartTime, dailySessionEndTime, sessionProfileStyle, sessionOutlineSmoothness, weeklyNumberOfVolumeBars, weeklyBarThickness, weeklyVolumeType, weeklyBarOpacity, weeklyDisplayPoC, weeklyPoCLineThickness, weeklyPoCLineOpacity, weeklyDisplayValueArea, weeklyValueAreaPercentage, weeklyDisplayValueAreaLines, weeklyValueAreaLinesThickness, weeklyValueAreaLinesOpacity, weeklyExtendPoCLine, weeklyExtendValueAreaLines, sessionNumberOfVolumeBars, sessionBarThickness, sessionVolumeType, sessionBarOpacity, sessionDisplayPoC, sessionPoCLineThickness, sessionPoCLineOpacity, sessionDisplayValueArea, sessionValueAreaPercentage, sessionDisplayValueAreaLines, sessionValueAreaLinesThickness, sessionValueAreaLinesOpacity, sessionExtendPoCLine, sessionExtendValueAreaLines, enableGradientFill, gradientIntensity, displayLVN, lVNNumberOfRows, lVNDetectionPercent, showAdjacentLVNNodes, lVNFillOpacity, lVNBorderOpacity, enableDomdicator, domdicatorWidth, domdicatorGap, domMaxRightExtension, showDOMVolumeText, domMaxTextSize, domMinTextSize, domHistoricalOpacity, showHistoricalOrders, liveOrderTickThreshold, domLiveOpacity, minimumOrdersToStart, enableAlerts, alertDistanceTicks, alertOnPreviousDayLevels, alertOnPreviousWeekLevels, alertOnNakedLevels, alertOnWeeklyNakedLevels, alertOnOvernightLevels, playAlertSound, alertSoundFile, rearmAlertsOnNewSession, enableMoveProfiles, consolidationBars, breakoutThresholdTicks, minimumMoveSizeTicks, maxMovesToDisplay, moveProfileOpacity, movePOCLineStyle, movePOCThickness, moveVALineStyle, moveVAThickness, moveNumberOfVolumeBars, moveValueAreaPercentage, moveVALinesOpacity, enableCandleProfiles, candleProfileWidth, candleProfileOpacity, candleProfileVolumeType, candleProfileShowPOC, candleProfileShowVA, candleProfileVAPercent, candleProfileShowVALines, candleVALinesThickness, candleVALinesOpacity, pdUseIndividualStyles, pdSharedLineStyle, pdSharedThickness, pdSharedOpacity, pwUseIndividualStyles, pwSharedLineStyle, pwSharedThickness, pwSharedOpacity, onUseIndividualStyles, onSharedLineStyle, onSharedThickness, onSharedOpacity);
 		}
 
-		public Indicators.RedTailVolumeProfile_V2 RedTailVolumeProfile_V2(ISeries<double> input , ProfileModeEnum profileMode, ProfileAlignment alignment, int weeksLookback, int sessionsLookback, int monthsLookback, CompositeDateRangeType compositeRangeType, int compositeDaysBack, int compositeWeeksBack, int compositeMonthsBack, DateTime compositeCustomStartDate, DateTime compositeCustomEndDate, bool useCustomSessionTimes, int sessionStartTime, int sessionEndTime, int numberOfVolumeBars, int barThickness, int profileWidth, VolumeTypeEnum volumeType, int barOpacity, bool displayPoC, int poCLineThickness, DashStyleHelper poCLineStyle, int poCLineOpacity, bool extendPoCLine, bool displayValueArea, int valueAreaPercentage, bool displayValueAreaLines, int valueAreaLinesThickness, DashStyleHelper valueAreaLineStyle, int valueAreaLinesOpacity, bool extendValueAreaLines, bool enableDebugPrints, bool displayPreviousDayPOC, DashStyleHelper pdPOCLineStyle, int pdPOCThickness, int pdPOCOpacity, bool displayPreviousDayVAH, DashStyleHelper pdVAHLineStyle, int pdVAHThickness, int pdVAHOpacity, bool displayPreviousDayVAL, DashStyleHelper pdVALLineStyle, int pdVALThickness, int pdVALOpacity, bool displayPreviousDayHigh, DashStyleHelper pdHighLineStyle, int pdHighThickness, int pdHighOpacity, bool displayPreviousDayLow, DashStyleHelper pdLowLineStyle, int pdLowThickness, int pdLowOpacity, bool displayPreviousWeekPOC, DashStyleHelper pwPOCLineStyle, int pwPOCThickness, int pwPOCOpacity, bool displayPreviousWeekVAH, DashStyleHelper pwVAHLineStyle, int pwVAHThickness, int pwVAHOpacity, bool displayPreviousWeekVAL, DashStyleHelper pwVALLineStyle, int pwVALThickness, int pwVALOpacity, bool displayPreviousWeekHigh, DashStyleHelper pwHighLineStyle, int pwHighThickness, int pwHighOpacity, bool displayPreviousWeekLow, DashStyleHelper pwLowLineStyle, int pwLowThickness, int pwLowOpacity, bool displayOvernightPOC, DashStyleHelper overnightPOCLineStyle, int overnightPOCThickness, int overnightPOCOpacity, bool displayOvernightVAH, DashStyleHelper overnightVAHLineStyle, int overnightVAHThickness, int overnightVAHOpacity, bool displayOvernightVAL, DashStyleHelper overnightVALLineStyle, int overnightVALThickness, int overnightVALOpacity, bool displayOvernightHigh, DashStyleHelper overnightHighLineStyle, int overnightHighThickness, int overnightHighOpacity, bool displayOvernightLow, DashStyleHelper overnightLowLineStyle, int overnightLowThickness, int overnightLowOpacity, int overnightStartTime, int overnightEndTime, DashStyleHelper nakedPOCLineStyle, int nakedPOCThickness, int nakedPOCOpacity, DashStyleHelper nakedVAHLineStyle, int nakedVAHThickness, int nakedVAHOpacity, DashStyleHelper nakedVALLineStyle, int nakedVALThickness, int nakedVALOpacity, DashStyleHelper weeklyNakedPOCLineStyle, int weeklyNakedPOCThickness, int weeklyNakedPOCOpacity, DashStyleHelper weeklyNakedVAHLineStyle, int weeklyNakedVAHThickness, int weeklyNakedVAHOpacity, DashStyleHelper weeklyNakedVALLineStyle, int weeklyNakedVALThickness, int weeklyNakedVALOpacity, bool displayNakedLevels, int maxNakedLevelsToDisplay, bool displayWeeklyNakedLevels, int maxWeeklyNakedLevelsToDisplay, bool keepFilledLevelsAfterSession, int removeAfterTouchCount, bool keepFilledWeeklyLevelsAfterWeek, int removeWeeklyAfterTouchCount, bool showTouchCountInLabels, bool britishDateFormat, int previousDayLineWidth, bool showPriceValuesInLabels, int labelFontSize, bool enableDualProfileMode, int weeklyProfileWidth, int sessionProfileWidth, int profileGap, bool useCustomDailySessionTimes, int dailySessionStartTime, int dailySessionEndTime, SessionProfileStyleEnum sessionProfileStyle, int sessionOutlineSmoothness, int weeklyNumberOfVolumeBars, int weeklyBarThickness, VolumeTypeEnum weeklyVolumeType, int weeklyBarOpacity, bool weeklyDisplayPoC, int weeklyPoCLineThickness, int weeklyPoCLineOpacity, bool weeklyDisplayValueArea, int weeklyValueAreaPercentage, bool weeklyDisplayValueAreaLines, int weeklyValueAreaLinesThickness, int weeklyValueAreaLinesOpacity, bool weeklyExtendPoCLine, bool weeklyExtendValueAreaLines, int sessionNumberOfVolumeBars, int sessionBarThickness, VolumeTypeEnum sessionVolumeType, int sessionBarOpacity, bool sessionDisplayPoC, int sessionPoCLineThickness, int sessionPoCLineOpacity, bool sessionDisplayValueArea, int sessionValueAreaPercentage, bool sessionDisplayValueAreaLines, int sessionValueAreaLinesThickness, int sessionValueAreaLinesOpacity, bool sessionExtendPoCLine, bool sessionExtendValueAreaLines, bool enableGradientFill, int gradientIntensity, bool displayLVN, int lVNNumberOfRows, int lVNDetectionPercent, bool showAdjacentLVNNodes, int lVNFillOpacity, int lVNBorderOpacity, bool enableDomdicator, int domdicatorWidth, int domdicatorGap, int domMaxRightExtension, bool showDOMVolumeText, float domMaxTextSize, float domMinTextSize, float domHistoricalOpacity, bool showHistoricalOrders, int liveOrderTickThreshold, float domLiveOpacity, int minimumOrdersToStart, bool enableAlerts, int alertDistanceTicks, bool alertOnPreviousDayLevels, bool alertOnPreviousWeekLevels, bool alertOnNakedLevels, bool alertOnWeeklyNakedLevels, bool alertOnOvernightLevels, bool playAlertSound, string alertSoundFile, bool rearmAlertsOnNewSession, bool enableMoveProfiles, int consolidationBars, int breakoutThresholdTicks, int minimumMoveSizeTicks, int maxMovesToDisplay, int moveProfileOpacity, DashStyleHelper movePOCLineStyle, int movePOCThickness, DashStyleHelper moveVALineStyle, int moveVAThickness, int moveNumberOfVolumeBars, int moveValueAreaPercentage, int moveVALinesOpacity, bool enableCandleProfiles, int candleProfileWidth, int candleProfileOpacity, VolumeTypeEnum candleProfileVolumeType, bool candleProfileShowPOC, bool candleProfileShowVA, int candleProfileVAPercent, bool candleProfileShowVALines, int candleVALinesThickness, int candleVALinesOpacity)
+		public Indicators.RedTail.RedTailVolumeProfile RedTailVolumeProfile(ISeries<double> input , ProfileModeEnum profileMode, ProfileAlignment alignment, int weeksLookback, int sessionsLookback, int monthsLookback, CompositeDateRangeType compositeRangeType, int compositeDaysBack, int compositeWeeksBack, int compositeMonthsBack, DateTime compositeCustomStartDate, DateTime compositeCustomEndDate, bool useCustomSessionTimes, int sessionStartTime, int sessionEndTime, int numberOfVolumeBars, int barThickness, int profileWidth, VolumeTypeEnum volumeType, int barOpacity, bool displayPoC, int poCLineThickness, DashStyleHelper poCLineStyle, int poCLineOpacity, bool extendPoCLine, bool displayValueArea, int valueAreaPercentage, bool displayValueAreaLines, int valueAreaLinesThickness, DashStyleHelper valueAreaLineStyle, int valueAreaLinesOpacity, bool extendValueAreaLines, bool enableDebugPrints, bool displayPreviousDayPOC, DashStyleHelper pdPOCLineStyle, int pdPOCThickness, int pdPOCOpacity, bool displayPreviousDayVAH, DashStyleHelper pdVAHLineStyle, int pdVAHThickness, int pdVAHOpacity, bool displayPreviousDayVAL, DashStyleHelper pdVALLineStyle, int pdVALThickness, int pdVALOpacity, bool displayPreviousDayHigh, DashStyleHelper pdHighLineStyle, int pdHighThickness, int pdHighOpacity, bool displayPreviousDayLow, DashStyleHelper pdLowLineStyle, int pdLowThickness, int pdLowOpacity, bool displayPreviousWeekPOC, DashStyleHelper pwPOCLineStyle, int pwPOCThickness, int pwPOCOpacity, bool displayPreviousWeekVAH, DashStyleHelper pwVAHLineStyle, int pwVAHThickness, int pwVAHOpacity, bool displayPreviousWeekVAL, DashStyleHelper pwVALLineStyle, int pwVALThickness, int pwVALOpacity, bool displayPreviousWeekHigh, DashStyleHelper pwHighLineStyle, int pwHighThickness, int pwHighOpacity, bool displayPreviousWeekLow, DashStyleHelper pwLowLineStyle, int pwLowThickness, int pwLowOpacity, bool displayOvernightPOC, DashStyleHelper overnightPOCLineStyle, int overnightPOCThickness, int overnightPOCOpacity, bool displayOvernightVAH, DashStyleHelper overnightVAHLineStyle, int overnightVAHThickness, int overnightVAHOpacity, bool displayOvernightVAL, DashStyleHelper overnightVALLineStyle, int overnightVALThickness, int overnightVALOpacity, bool displayOvernightHigh, DashStyleHelper overnightHighLineStyle, int overnightHighThickness, int overnightHighOpacity, bool displayOvernightLow, DashStyleHelper overnightLowLineStyle, int overnightLowThickness, int overnightLowOpacity, int overnightStartTime, int overnightEndTime, DashStyleHelper nakedPOCLineStyle, int nakedPOCThickness, int nakedPOCOpacity, DashStyleHelper nakedVAHLineStyle, int nakedVAHThickness, int nakedVAHOpacity, DashStyleHelper nakedVALLineStyle, int nakedVALThickness, int nakedVALOpacity, DashStyleHelper weeklyNakedPOCLineStyle, int weeklyNakedPOCThickness, int weeklyNakedPOCOpacity, DashStyleHelper weeklyNakedVAHLineStyle, int weeklyNakedVAHThickness, int weeklyNakedVAHOpacity, DashStyleHelper weeklyNakedVALLineStyle, int weeklyNakedVALThickness, int weeklyNakedVALOpacity, bool displayNakedLevels, int maxNakedLevelsToDisplay, bool displayWeeklyNakedLevels, int maxWeeklyNakedLevelsToDisplay, bool keepFilledLevelsAfterSession, int removeAfterTouchCount, bool keepFilledWeeklyLevelsAfterWeek, int removeWeeklyAfterTouchCount, bool showTouchCountInLabels, bool britishDateFormat, int previousDayLineWidth, bool showPriceValuesInLabels, int labelFontSize, bool enableDualProfileMode, int weeklyProfileWidth, int sessionProfileWidth, int profileGap, bool useCustomDailySessionTimes, int dailySessionStartTime, int dailySessionEndTime, SessionProfileStyleEnum sessionProfileStyle, int sessionOutlineSmoothness, int weeklyNumberOfVolumeBars, int weeklyBarThickness, VolumeTypeEnum weeklyVolumeType, int weeklyBarOpacity, bool weeklyDisplayPoC, int weeklyPoCLineThickness, int weeklyPoCLineOpacity, bool weeklyDisplayValueArea, int weeklyValueAreaPercentage, bool weeklyDisplayValueAreaLines, int weeklyValueAreaLinesThickness, int weeklyValueAreaLinesOpacity, bool weeklyExtendPoCLine, bool weeklyExtendValueAreaLines, int sessionNumberOfVolumeBars, int sessionBarThickness, VolumeTypeEnum sessionVolumeType, int sessionBarOpacity, bool sessionDisplayPoC, int sessionPoCLineThickness, int sessionPoCLineOpacity, bool sessionDisplayValueArea, int sessionValueAreaPercentage, bool sessionDisplayValueAreaLines, int sessionValueAreaLinesThickness, int sessionValueAreaLinesOpacity, bool sessionExtendPoCLine, bool sessionExtendValueAreaLines, bool enableGradientFill, int gradientIntensity, bool displayLVN, int lVNNumberOfRows, int lVNDetectionPercent, bool showAdjacentLVNNodes, int lVNFillOpacity, int lVNBorderOpacity, bool enableDomdicator, int domdicatorWidth, int domdicatorGap, int domMaxRightExtension, bool showDOMVolumeText, float domMaxTextSize, float domMinTextSize, float domHistoricalOpacity, bool showHistoricalOrders, int liveOrderTickThreshold, float domLiveOpacity, int minimumOrdersToStart, bool enableAlerts, int alertDistanceTicks, bool alertOnPreviousDayLevels, bool alertOnPreviousWeekLevels, bool alertOnNakedLevels, bool alertOnWeeklyNakedLevels, bool alertOnOvernightLevels, bool playAlertSound, string alertSoundFile, bool rearmAlertsOnNewSession, bool enableMoveProfiles, int consolidationBars, int breakoutThresholdTicks, int minimumMoveSizeTicks, int maxMovesToDisplay, int moveProfileOpacity, DashStyleHelper movePOCLineStyle, int movePOCThickness, DashStyleHelper moveVALineStyle, int moveVAThickness, int moveNumberOfVolumeBars, int moveValueAreaPercentage, int moveVALinesOpacity, bool enableCandleProfiles, int candleProfileWidth, int candleProfileOpacity, VolumeTypeEnum candleProfileVolumeType, bool candleProfileShowPOC, bool candleProfileShowVA, int candleProfileVAPercent, bool candleProfileShowVALines, int candleVALinesThickness, int candleVALinesOpacity, bool pdUseIndividualStyles, DashStyleHelper pdSharedLineStyle, int pdSharedThickness, int pdSharedOpacity, bool pwUseIndividualStyles, DashStyleHelper pwSharedLineStyle, int pwSharedThickness, int pwSharedOpacity, bool onUseIndividualStyles, DashStyleHelper onSharedLineStyle, int onSharedThickness, int onSharedOpacity)
 		{
-			return indicator.RedTailVolumeProfile_V2(input, profileMode, alignment, weeksLookback, sessionsLookback, monthsLookback, compositeRangeType, compositeDaysBack, compositeWeeksBack, compositeMonthsBack, compositeCustomStartDate, compositeCustomEndDate, useCustomSessionTimes, sessionStartTime, sessionEndTime, numberOfVolumeBars, barThickness, profileWidth, volumeType, barOpacity, displayPoC, poCLineThickness, poCLineStyle, poCLineOpacity, extendPoCLine, displayValueArea, valueAreaPercentage, displayValueAreaLines, valueAreaLinesThickness, valueAreaLineStyle, valueAreaLinesOpacity, extendValueAreaLines, enableDebugPrints, displayPreviousDayPOC, pdPOCLineStyle, pdPOCThickness, pdPOCOpacity, displayPreviousDayVAH, pdVAHLineStyle, pdVAHThickness, pdVAHOpacity, displayPreviousDayVAL, pdVALLineStyle, pdVALThickness, pdVALOpacity, displayPreviousDayHigh, pdHighLineStyle, pdHighThickness, pdHighOpacity, displayPreviousDayLow, pdLowLineStyle, pdLowThickness, pdLowOpacity, displayPreviousWeekPOC, pwPOCLineStyle, pwPOCThickness, pwPOCOpacity, displayPreviousWeekVAH, pwVAHLineStyle, pwVAHThickness, pwVAHOpacity, displayPreviousWeekVAL, pwVALLineStyle, pwVALThickness, pwVALOpacity, displayPreviousWeekHigh, pwHighLineStyle, pwHighThickness, pwHighOpacity, displayPreviousWeekLow, pwLowLineStyle, pwLowThickness, pwLowOpacity, displayOvernightPOC, overnightPOCLineStyle, overnightPOCThickness, overnightPOCOpacity, displayOvernightVAH, overnightVAHLineStyle, overnightVAHThickness, overnightVAHOpacity, displayOvernightVAL, overnightVALLineStyle, overnightVALThickness, overnightVALOpacity, displayOvernightHigh, overnightHighLineStyle, overnightHighThickness, overnightHighOpacity, displayOvernightLow, overnightLowLineStyle, overnightLowThickness, overnightLowOpacity, overnightStartTime, overnightEndTime, nakedPOCLineStyle, nakedPOCThickness, nakedPOCOpacity, nakedVAHLineStyle, nakedVAHThickness, nakedVAHOpacity, nakedVALLineStyle, nakedVALThickness, nakedVALOpacity, weeklyNakedPOCLineStyle, weeklyNakedPOCThickness, weeklyNakedPOCOpacity, weeklyNakedVAHLineStyle, weeklyNakedVAHThickness, weeklyNakedVAHOpacity, weeklyNakedVALLineStyle, weeklyNakedVALThickness, weeklyNakedVALOpacity, displayNakedLevels, maxNakedLevelsToDisplay, displayWeeklyNakedLevels, maxWeeklyNakedLevelsToDisplay, keepFilledLevelsAfterSession, removeAfterTouchCount, keepFilledWeeklyLevelsAfterWeek, removeWeeklyAfterTouchCount, showTouchCountInLabels, britishDateFormat, previousDayLineWidth, showPriceValuesInLabels, labelFontSize, enableDualProfileMode, weeklyProfileWidth, sessionProfileWidth, profileGap, useCustomDailySessionTimes, dailySessionStartTime, dailySessionEndTime, sessionProfileStyle, sessionOutlineSmoothness, weeklyNumberOfVolumeBars, weeklyBarThickness, weeklyVolumeType, weeklyBarOpacity, weeklyDisplayPoC, weeklyPoCLineThickness, weeklyPoCLineOpacity, weeklyDisplayValueArea, weeklyValueAreaPercentage, weeklyDisplayValueAreaLines, weeklyValueAreaLinesThickness, weeklyValueAreaLinesOpacity, weeklyExtendPoCLine, weeklyExtendValueAreaLines, sessionNumberOfVolumeBars, sessionBarThickness, sessionVolumeType, sessionBarOpacity, sessionDisplayPoC, sessionPoCLineThickness, sessionPoCLineOpacity, sessionDisplayValueArea, sessionValueAreaPercentage, sessionDisplayValueAreaLines, sessionValueAreaLinesThickness, sessionValueAreaLinesOpacity, sessionExtendPoCLine, sessionExtendValueAreaLines, enableGradientFill, gradientIntensity, displayLVN, lVNNumberOfRows, lVNDetectionPercent, showAdjacentLVNNodes, lVNFillOpacity, lVNBorderOpacity, enableDomdicator, domdicatorWidth, domdicatorGap, domMaxRightExtension, showDOMVolumeText, domMaxTextSize, domMinTextSize, domHistoricalOpacity, showHistoricalOrders, liveOrderTickThreshold, domLiveOpacity, minimumOrdersToStart, enableAlerts, alertDistanceTicks, alertOnPreviousDayLevels, alertOnPreviousWeekLevels, alertOnNakedLevels, alertOnWeeklyNakedLevels, alertOnOvernightLevels, playAlertSound, alertSoundFile, rearmAlertsOnNewSession, enableMoveProfiles, consolidationBars, breakoutThresholdTicks, minimumMoveSizeTicks, maxMovesToDisplay, moveProfileOpacity, movePOCLineStyle, movePOCThickness, moveVALineStyle, moveVAThickness, moveNumberOfVolumeBars, moveValueAreaPercentage, moveVALinesOpacity, enableCandleProfiles, candleProfileWidth, candleProfileOpacity, candleProfileVolumeType, candleProfileShowPOC, candleProfileShowVA, candleProfileVAPercent, candleProfileShowVALines, candleVALinesThickness, candleVALinesOpacity);
+			return indicator.RedTailVolumeProfile(input, profileMode, alignment, weeksLookback, sessionsLookback, monthsLookback, compositeRangeType, compositeDaysBack, compositeWeeksBack, compositeMonthsBack, compositeCustomStartDate, compositeCustomEndDate, useCustomSessionTimes, sessionStartTime, sessionEndTime, numberOfVolumeBars, barThickness, profileWidth, volumeType, barOpacity, displayPoC, poCLineThickness, poCLineStyle, poCLineOpacity, extendPoCLine, displayValueArea, valueAreaPercentage, displayValueAreaLines, valueAreaLinesThickness, valueAreaLineStyle, valueAreaLinesOpacity, extendValueAreaLines, enableDebugPrints, displayPreviousDayPOC, pdPOCLineStyle, pdPOCThickness, pdPOCOpacity, displayPreviousDayVAH, pdVAHLineStyle, pdVAHThickness, pdVAHOpacity, displayPreviousDayVAL, pdVALLineStyle, pdVALThickness, pdVALOpacity, displayPreviousDayHigh, pdHighLineStyle, pdHighThickness, pdHighOpacity, displayPreviousDayLow, pdLowLineStyle, pdLowThickness, pdLowOpacity, displayPreviousWeekPOC, pwPOCLineStyle, pwPOCThickness, pwPOCOpacity, displayPreviousWeekVAH, pwVAHLineStyle, pwVAHThickness, pwVAHOpacity, displayPreviousWeekVAL, pwVALLineStyle, pwVALThickness, pwVALOpacity, displayPreviousWeekHigh, pwHighLineStyle, pwHighThickness, pwHighOpacity, displayPreviousWeekLow, pwLowLineStyle, pwLowThickness, pwLowOpacity, displayOvernightPOC, overnightPOCLineStyle, overnightPOCThickness, overnightPOCOpacity, displayOvernightVAH, overnightVAHLineStyle, overnightVAHThickness, overnightVAHOpacity, displayOvernightVAL, overnightVALLineStyle, overnightVALThickness, overnightVALOpacity, displayOvernightHigh, overnightHighLineStyle, overnightHighThickness, overnightHighOpacity, displayOvernightLow, overnightLowLineStyle, overnightLowThickness, overnightLowOpacity, overnightStartTime, overnightEndTime, nakedPOCLineStyle, nakedPOCThickness, nakedPOCOpacity, nakedVAHLineStyle, nakedVAHThickness, nakedVAHOpacity, nakedVALLineStyle, nakedVALThickness, nakedVALOpacity, weeklyNakedPOCLineStyle, weeklyNakedPOCThickness, weeklyNakedPOCOpacity, weeklyNakedVAHLineStyle, weeklyNakedVAHThickness, weeklyNakedVAHOpacity, weeklyNakedVALLineStyle, weeklyNakedVALThickness, weeklyNakedVALOpacity, displayNakedLevels, maxNakedLevelsToDisplay, displayWeeklyNakedLevels, maxWeeklyNakedLevelsToDisplay, keepFilledLevelsAfterSession, removeAfterTouchCount, keepFilledWeeklyLevelsAfterWeek, removeWeeklyAfterTouchCount, showTouchCountInLabels, britishDateFormat, previousDayLineWidth, showPriceValuesInLabels, labelFontSize, enableDualProfileMode, weeklyProfileWidth, sessionProfileWidth, profileGap, useCustomDailySessionTimes, dailySessionStartTime, dailySessionEndTime, sessionProfileStyle, sessionOutlineSmoothness, weeklyNumberOfVolumeBars, weeklyBarThickness, weeklyVolumeType, weeklyBarOpacity, weeklyDisplayPoC, weeklyPoCLineThickness, weeklyPoCLineOpacity, weeklyDisplayValueArea, weeklyValueAreaPercentage, weeklyDisplayValueAreaLines, weeklyValueAreaLinesThickness, weeklyValueAreaLinesOpacity, weeklyExtendPoCLine, weeklyExtendValueAreaLines, sessionNumberOfVolumeBars, sessionBarThickness, sessionVolumeType, sessionBarOpacity, sessionDisplayPoC, sessionPoCLineThickness, sessionPoCLineOpacity, sessionDisplayValueArea, sessionValueAreaPercentage, sessionDisplayValueAreaLines, sessionValueAreaLinesThickness, sessionValueAreaLinesOpacity, sessionExtendPoCLine, sessionExtendValueAreaLines, enableGradientFill, gradientIntensity, displayLVN, lVNNumberOfRows, lVNDetectionPercent, showAdjacentLVNNodes, lVNFillOpacity, lVNBorderOpacity, enableDomdicator, domdicatorWidth, domdicatorGap, domMaxRightExtension, showDOMVolumeText, domMaxTextSize, domMinTextSize, domHistoricalOpacity, showHistoricalOrders, liveOrderTickThreshold, domLiveOpacity, minimumOrdersToStart, enableAlerts, alertDistanceTicks, alertOnPreviousDayLevels, alertOnPreviousWeekLevels, alertOnNakedLevels, alertOnWeeklyNakedLevels, alertOnOvernightLevels, playAlertSound, alertSoundFile, rearmAlertsOnNewSession, enableMoveProfiles, consolidationBars, breakoutThresholdTicks, minimumMoveSizeTicks, maxMovesToDisplay, moveProfileOpacity, movePOCLineStyle, movePOCThickness, moveVALineStyle, moveVAThickness, moveNumberOfVolumeBars, moveValueAreaPercentage, moveVALinesOpacity, enableCandleProfiles, candleProfileWidth, candleProfileOpacity, candleProfileVolumeType, candleProfileShowPOC, candleProfileShowVA, candleProfileVAPercent, candleProfileShowVALines, candleVALinesThickness, candleVALinesOpacity, pdUseIndividualStyles, pdSharedLineStyle, pdSharedThickness, pdSharedOpacity, pwUseIndividualStyles, pwSharedLineStyle, pwSharedThickness, pwSharedOpacity, onUseIndividualStyles, onSharedLineStyle, onSharedThickness, onSharedOpacity);
 		}
 	}
 }
@@ -9859,14 +10003,14 @@ namespace NinjaTrader.NinjaScript.Strategies
 {
 	public partial class Strategy : NinjaTrader.Gui.NinjaScript.StrategyRenderBase
 	{
-		public Indicators.RedTailVolumeProfile_V2 RedTailVolumeProfile_V2(ProfileModeEnum profileMode, ProfileAlignment alignment, int weeksLookback, int sessionsLookback, int monthsLookback, CompositeDateRangeType compositeRangeType, int compositeDaysBack, int compositeWeeksBack, int compositeMonthsBack, DateTime compositeCustomStartDate, DateTime compositeCustomEndDate, bool useCustomSessionTimes, int sessionStartTime, int sessionEndTime, int numberOfVolumeBars, int barThickness, int profileWidth, VolumeTypeEnum volumeType, int barOpacity, bool displayPoC, int poCLineThickness, DashStyleHelper poCLineStyle, int poCLineOpacity, bool extendPoCLine, bool displayValueArea, int valueAreaPercentage, bool displayValueAreaLines, int valueAreaLinesThickness, DashStyleHelper valueAreaLineStyle, int valueAreaLinesOpacity, bool extendValueAreaLines, bool enableDebugPrints, bool displayPreviousDayPOC, DashStyleHelper pdPOCLineStyle, int pdPOCThickness, int pdPOCOpacity, bool displayPreviousDayVAH, DashStyleHelper pdVAHLineStyle, int pdVAHThickness, int pdVAHOpacity, bool displayPreviousDayVAL, DashStyleHelper pdVALLineStyle, int pdVALThickness, int pdVALOpacity, bool displayPreviousDayHigh, DashStyleHelper pdHighLineStyle, int pdHighThickness, int pdHighOpacity, bool displayPreviousDayLow, DashStyleHelper pdLowLineStyle, int pdLowThickness, int pdLowOpacity, bool displayPreviousWeekPOC, DashStyleHelper pwPOCLineStyle, int pwPOCThickness, int pwPOCOpacity, bool displayPreviousWeekVAH, DashStyleHelper pwVAHLineStyle, int pwVAHThickness, int pwVAHOpacity, bool displayPreviousWeekVAL, DashStyleHelper pwVALLineStyle, int pwVALThickness, int pwVALOpacity, bool displayPreviousWeekHigh, DashStyleHelper pwHighLineStyle, int pwHighThickness, int pwHighOpacity, bool displayPreviousWeekLow, DashStyleHelper pwLowLineStyle, int pwLowThickness, int pwLowOpacity, bool displayOvernightPOC, DashStyleHelper overnightPOCLineStyle, int overnightPOCThickness, int overnightPOCOpacity, bool displayOvernightVAH, DashStyleHelper overnightVAHLineStyle, int overnightVAHThickness, int overnightVAHOpacity, bool displayOvernightVAL, DashStyleHelper overnightVALLineStyle, int overnightVALThickness, int overnightVALOpacity, bool displayOvernightHigh, DashStyleHelper overnightHighLineStyle, int overnightHighThickness, int overnightHighOpacity, bool displayOvernightLow, DashStyleHelper overnightLowLineStyle, int overnightLowThickness, int overnightLowOpacity, int overnightStartTime, int overnightEndTime, DashStyleHelper nakedPOCLineStyle, int nakedPOCThickness, int nakedPOCOpacity, DashStyleHelper nakedVAHLineStyle, int nakedVAHThickness, int nakedVAHOpacity, DashStyleHelper nakedVALLineStyle, int nakedVALThickness, int nakedVALOpacity, DashStyleHelper weeklyNakedPOCLineStyle, int weeklyNakedPOCThickness, int weeklyNakedPOCOpacity, DashStyleHelper weeklyNakedVAHLineStyle, int weeklyNakedVAHThickness, int weeklyNakedVAHOpacity, DashStyleHelper weeklyNakedVALLineStyle, int weeklyNakedVALThickness, int weeklyNakedVALOpacity, bool displayNakedLevels, int maxNakedLevelsToDisplay, bool displayWeeklyNakedLevels, int maxWeeklyNakedLevelsToDisplay, bool keepFilledLevelsAfterSession, int removeAfterTouchCount, bool keepFilledWeeklyLevelsAfterWeek, int removeWeeklyAfterTouchCount, bool showTouchCountInLabels, bool britishDateFormat, int previousDayLineWidth, bool showPriceValuesInLabels, int labelFontSize, bool enableDualProfileMode, int weeklyProfileWidth, int sessionProfileWidth, int profileGap, bool useCustomDailySessionTimes, int dailySessionStartTime, int dailySessionEndTime, SessionProfileStyleEnum sessionProfileStyle, int sessionOutlineSmoothness, int weeklyNumberOfVolumeBars, int weeklyBarThickness, VolumeTypeEnum weeklyVolumeType, int weeklyBarOpacity, bool weeklyDisplayPoC, int weeklyPoCLineThickness, int weeklyPoCLineOpacity, bool weeklyDisplayValueArea, int weeklyValueAreaPercentage, bool weeklyDisplayValueAreaLines, int weeklyValueAreaLinesThickness, int weeklyValueAreaLinesOpacity, bool weeklyExtendPoCLine, bool weeklyExtendValueAreaLines, int sessionNumberOfVolumeBars, int sessionBarThickness, VolumeTypeEnum sessionVolumeType, int sessionBarOpacity, bool sessionDisplayPoC, int sessionPoCLineThickness, int sessionPoCLineOpacity, bool sessionDisplayValueArea, int sessionValueAreaPercentage, bool sessionDisplayValueAreaLines, int sessionValueAreaLinesThickness, int sessionValueAreaLinesOpacity, bool sessionExtendPoCLine, bool sessionExtendValueAreaLines, bool enableGradientFill, int gradientIntensity, bool displayLVN, int lVNNumberOfRows, int lVNDetectionPercent, bool showAdjacentLVNNodes, int lVNFillOpacity, int lVNBorderOpacity, bool enableDomdicator, int domdicatorWidth, int domdicatorGap, int domMaxRightExtension, bool showDOMVolumeText, float domMaxTextSize, float domMinTextSize, float domHistoricalOpacity, bool showHistoricalOrders, int liveOrderTickThreshold, float domLiveOpacity, int minimumOrdersToStart, bool enableAlerts, int alertDistanceTicks, bool alertOnPreviousDayLevels, bool alertOnPreviousWeekLevels, bool alertOnNakedLevels, bool alertOnWeeklyNakedLevels, bool alertOnOvernightLevels, bool playAlertSound, string alertSoundFile, bool rearmAlertsOnNewSession, bool enableMoveProfiles, int consolidationBars, int breakoutThresholdTicks, int minimumMoveSizeTicks, int maxMovesToDisplay, int moveProfileOpacity, DashStyleHelper movePOCLineStyle, int movePOCThickness, DashStyleHelper moveVALineStyle, int moveVAThickness, int moveNumberOfVolumeBars, int moveValueAreaPercentage, int moveVALinesOpacity, bool enableCandleProfiles, int candleProfileWidth, int candleProfileOpacity, VolumeTypeEnum candleProfileVolumeType, bool candleProfileShowPOC, bool candleProfileShowVA, int candleProfileVAPercent, bool candleProfileShowVALines, int candleVALinesThickness, int candleVALinesOpacity)
+		public Indicators.RedTail.RedTailVolumeProfile RedTailVolumeProfile(ProfileModeEnum profileMode, ProfileAlignment alignment, int weeksLookback, int sessionsLookback, int monthsLookback, CompositeDateRangeType compositeRangeType, int compositeDaysBack, int compositeWeeksBack, int compositeMonthsBack, DateTime compositeCustomStartDate, DateTime compositeCustomEndDate, bool useCustomSessionTimes, int sessionStartTime, int sessionEndTime, int numberOfVolumeBars, int barThickness, int profileWidth, VolumeTypeEnum volumeType, int barOpacity, bool displayPoC, int poCLineThickness, DashStyleHelper poCLineStyle, int poCLineOpacity, bool extendPoCLine, bool displayValueArea, int valueAreaPercentage, bool displayValueAreaLines, int valueAreaLinesThickness, DashStyleHelper valueAreaLineStyle, int valueAreaLinesOpacity, bool extendValueAreaLines, bool enableDebugPrints, bool displayPreviousDayPOC, DashStyleHelper pdPOCLineStyle, int pdPOCThickness, int pdPOCOpacity, bool displayPreviousDayVAH, DashStyleHelper pdVAHLineStyle, int pdVAHThickness, int pdVAHOpacity, bool displayPreviousDayVAL, DashStyleHelper pdVALLineStyle, int pdVALThickness, int pdVALOpacity, bool displayPreviousDayHigh, DashStyleHelper pdHighLineStyle, int pdHighThickness, int pdHighOpacity, bool displayPreviousDayLow, DashStyleHelper pdLowLineStyle, int pdLowThickness, int pdLowOpacity, bool displayPreviousWeekPOC, DashStyleHelper pwPOCLineStyle, int pwPOCThickness, int pwPOCOpacity, bool displayPreviousWeekVAH, DashStyleHelper pwVAHLineStyle, int pwVAHThickness, int pwVAHOpacity, bool displayPreviousWeekVAL, DashStyleHelper pwVALLineStyle, int pwVALThickness, int pwVALOpacity, bool displayPreviousWeekHigh, DashStyleHelper pwHighLineStyle, int pwHighThickness, int pwHighOpacity, bool displayPreviousWeekLow, DashStyleHelper pwLowLineStyle, int pwLowThickness, int pwLowOpacity, bool displayOvernightPOC, DashStyleHelper overnightPOCLineStyle, int overnightPOCThickness, int overnightPOCOpacity, bool displayOvernightVAH, DashStyleHelper overnightVAHLineStyle, int overnightVAHThickness, int overnightVAHOpacity, bool displayOvernightVAL, DashStyleHelper overnightVALLineStyle, int overnightVALThickness, int overnightVALOpacity, bool displayOvernightHigh, DashStyleHelper overnightHighLineStyle, int overnightHighThickness, int overnightHighOpacity, bool displayOvernightLow, DashStyleHelper overnightLowLineStyle, int overnightLowThickness, int overnightLowOpacity, int overnightStartTime, int overnightEndTime, DashStyleHelper nakedPOCLineStyle, int nakedPOCThickness, int nakedPOCOpacity, DashStyleHelper nakedVAHLineStyle, int nakedVAHThickness, int nakedVAHOpacity, DashStyleHelper nakedVALLineStyle, int nakedVALThickness, int nakedVALOpacity, DashStyleHelper weeklyNakedPOCLineStyle, int weeklyNakedPOCThickness, int weeklyNakedPOCOpacity, DashStyleHelper weeklyNakedVAHLineStyle, int weeklyNakedVAHThickness, int weeklyNakedVAHOpacity, DashStyleHelper weeklyNakedVALLineStyle, int weeklyNakedVALThickness, int weeklyNakedVALOpacity, bool displayNakedLevels, int maxNakedLevelsToDisplay, bool displayWeeklyNakedLevels, int maxWeeklyNakedLevelsToDisplay, bool keepFilledLevelsAfterSession, int removeAfterTouchCount, bool keepFilledWeeklyLevelsAfterWeek, int removeWeeklyAfterTouchCount, bool showTouchCountInLabels, bool britishDateFormat, int previousDayLineWidth, bool showPriceValuesInLabels, int labelFontSize, bool enableDualProfileMode, int weeklyProfileWidth, int sessionProfileWidth, int profileGap, bool useCustomDailySessionTimes, int dailySessionStartTime, int dailySessionEndTime, SessionProfileStyleEnum sessionProfileStyle, int sessionOutlineSmoothness, int weeklyNumberOfVolumeBars, int weeklyBarThickness, VolumeTypeEnum weeklyVolumeType, int weeklyBarOpacity, bool weeklyDisplayPoC, int weeklyPoCLineThickness, int weeklyPoCLineOpacity, bool weeklyDisplayValueArea, int weeklyValueAreaPercentage, bool weeklyDisplayValueAreaLines, int weeklyValueAreaLinesThickness, int weeklyValueAreaLinesOpacity, bool weeklyExtendPoCLine, bool weeklyExtendValueAreaLines, int sessionNumberOfVolumeBars, int sessionBarThickness, VolumeTypeEnum sessionVolumeType, int sessionBarOpacity, bool sessionDisplayPoC, int sessionPoCLineThickness, int sessionPoCLineOpacity, bool sessionDisplayValueArea, int sessionValueAreaPercentage, bool sessionDisplayValueAreaLines, int sessionValueAreaLinesThickness, int sessionValueAreaLinesOpacity, bool sessionExtendPoCLine, bool sessionExtendValueAreaLines, bool enableGradientFill, int gradientIntensity, bool displayLVN, int lVNNumberOfRows, int lVNDetectionPercent, bool showAdjacentLVNNodes, int lVNFillOpacity, int lVNBorderOpacity, bool enableDomdicator, int domdicatorWidth, int domdicatorGap, int domMaxRightExtension, bool showDOMVolumeText, float domMaxTextSize, float domMinTextSize, float domHistoricalOpacity, bool showHistoricalOrders, int liveOrderTickThreshold, float domLiveOpacity, int minimumOrdersToStart, bool enableAlerts, int alertDistanceTicks, bool alertOnPreviousDayLevels, bool alertOnPreviousWeekLevels, bool alertOnNakedLevels, bool alertOnWeeklyNakedLevels, bool alertOnOvernightLevels, bool playAlertSound, string alertSoundFile, bool rearmAlertsOnNewSession, bool enableMoveProfiles, int consolidationBars, int breakoutThresholdTicks, int minimumMoveSizeTicks, int maxMovesToDisplay, int moveProfileOpacity, DashStyleHelper movePOCLineStyle, int movePOCThickness, DashStyleHelper moveVALineStyle, int moveVAThickness, int moveNumberOfVolumeBars, int moveValueAreaPercentage, int moveVALinesOpacity, bool enableCandleProfiles, int candleProfileWidth, int candleProfileOpacity, VolumeTypeEnum candleProfileVolumeType, bool candleProfileShowPOC, bool candleProfileShowVA, int candleProfileVAPercent, bool candleProfileShowVALines, int candleVALinesThickness, int candleVALinesOpacity, bool pdUseIndividualStyles, DashStyleHelper pdSharedLineStyle, int pdSharedThickness, int pdSharedOpacity, bool pwUseIndividualStyles, DashStyleHelper pwSharedLineStyle, int pwSharedThickness, int pwSharedOpacity, bool onUseIndividualStyles, DashStyleHelper onSharedLineStyle, int onSharedThickness, int onSharedOpacity)
 		{
-			return indicator.RedTailVolumeProfile_V2(Input, profileMode, alignment, weeksLookback, sessionsLookback, monthsLookback, compositeRangeType, compositeDaysBack, compositeWeeksBack, compositeMonthsBack, compositeCustomStartDate, compositeCustomEndDate, useCustomSessionTimes, sessionStartTime, sessionEndTime, numberOfVolumeBars, barThickness, profileWidth, volumeType, barOpacity, displayPoC, poCLineThickness, poCLineStyle, poCLineOpacity, extendPoCLine, displayValueArea, valueAreaPercentage, displayValueAreaLines, valueAreaLinesThickness, valueAreaLineStyle, valueAreaLinesOpacity, extendValueAreaLines, enableDebugPrints, displayPreviousDayPOC, pdPOCLineStyle, pdPOCThickness, pdPOCOpacity, displayPreviousDayVAH, pdVAHLineStyle, pdVAHThickness, pdVAHOpacity, displayPreviousDayVAL, pdVALLineStyle, pdVALThickness, pdVALOpacity, displayPreviousDayHigh, pdHighLineStyle, pdHighThickness, pdHighOpacity, displayPreviousDayLow, pdLowLineStyle, pdLowThickness, pdLowOpacity, displayPreviousWeekPOC, pwPOCLineStyle, pwPOCThickness, pwPOCOpacity, displayPreviousWeekVAH, pwVAHLineStyle, pwVAHThickness, pwVAHOpacity, displayPreviousWeekVAL, pwVALLineStyle, pwVALThickness, pwVALOpacity, displayPreviousWeekHigh, pwHighLineStyle, pwHighThickness, pwHighOpacity, displayPreviousWeekLow, pwLowLineStyle, pwLowThickness, pwLowOpacity, displayOvernightPOC, overnightPOCLineStyle, overnightPOCThickness, overnightPOCOpacity, displayOvernightVAH, overnightVAHLineStyle, overnightVAHThickness, overnightVAHOpacity, displayOvernightVAL, overnightVALLineStyle, overnightVALThickness, overnightVALOpacity, displayOvernightHigh, overnightHighLineStyle, overnightHighThickness, overnightHighOpacity, displayOvernightLow, overnightLowLineStyle, overnightLowThickness, overnightLowOpacity, overnightStartTime, overnightEndTime, nakedPOCLineStyle, nakedPOCThickness, nakedPOCOpacity, nakedVAHLineStyle, nakedVAHThickness, nakedVAHOpacity, nakedVALLineStyle, nakedVALThickness, nakedVALOpacity, weeklyNakedPOCLineStyle, weeklyNakedPOCThickness, weeklyNakedPOCOpacity, weeklyNakedVAHLineStyle, weeklyNakedVAHThickness, weeklyNakedVAHOpacity, weeklyNakedVALLineStyle, weeklyNakedVALThickness, weeklyNakedVALOpacity, displayNakedLevels, maxNakedLevelsToDisplay, displayWeeklyNakedLevels, maxWeeklyNakedLevelsToDisplay, keepFilledLevelsAfterSession, removeAfterTouchCount, keepFilledWeeklyLevelsAfterWeek, removeWeeklyAfterTouchCount, showTouchCountInLabels, britishDateFormat, previousDayLineWidth, showPriceValuesInLabels, labelFontSize, enableDualProfileMode, weeklyProfileWidth, sessionProfileWidth, profileGap, useCustomDailySessionTimes, dailySessionStartTime, dailySessionEndTime, sessionProfileStyle, sessionOutlineSmoothness, weeklyNumberOfVolumeBars, weeklyBarThickness, weeklyVolumeType, weeklyBarOpacity, weeklyDisplayPoC, weeklyPoCLineThickness, weeklyPoCLineOpacity, weeklyDisplayValueArea, weeklyValueAreaPercentage, weeklyDisplayValueAreaLines, weeklyValueAreaLinesThickness, weeklyValueAreaLinesOpacity, weeklyExtendPoCLine, weeklyExtendValueAreaLines, sessionNumberOfVolumeBars, sessionBarThickness, sessionVolumeType, sessionBarOpacity, sessionDisplayPoC, sessionPoCLineThickness, sessionPoCLineOpacity, sessionDisplayValueArea, sessionValueAreaPercentage, sessionDisplayValueAreaLines, sessionValueAreaLinesThickness, sessionValueAreaLinesOpacity, sessionExtendPoCLine, sessionExtendValueAreaLines, enableGradientFill, gradientIntensity, displayLVN, lVNNumberOfRows, lVNDetectionPercent, showAdjacentLVNNodes, lVNFillOpacity, lVNBorderOpacity, enableDomdicator, domdicatorWidth, domdicatorGap, domMaxRightExtension, showDOMVolumeText, domMaxTextSize, domMinTextSize, domHistoricalOpacity, showHistoricalOrders, liveOrderTickThreshold, domLiveOpacity, minimumOrdersToStart, enableAlerts, alertDistanceTicks, alertOnPreviousDayLevels, alertOnPreviousWeekLevels, alertOnNakedLevels, alertOnWeeklyNakedLevels, alertOnOvernightLevels, playAlertSound, alertSoundFile, rearmAlertsOnNewSession, enableMoveProfiles, consolidationBars, breakoutThresholdTicks, minimumMoveSizeTicks, maxMovesToDisplay, moveProfileOpacity, movePOCLineStyle, movePOCThickness, moveVALineStyle, moveVAThickness, moveNumberOfVolumeBars, moveValueAreaPercentage, moveVALinesOpacity, enableCandleProfiles, candleProfileWidth, candleProfileOpacity, candleProfileVolumeType, candleProfileShowPOC, candleProfileShowVA, candleProfileVAPercent, candleProfileShowVALines, candleVALinesThickness, candleVALinesOpacity);
+			return indicator.RedTailVolumeProfile(Input, profileMode, alignment, weeksLookback, sessionsLookback, monthsLookback, compositeRangeType, compositeDaysBack, compositeWeeksBack, compositeMonthsBack, compositeCustomStartDate, compositeCustomEndDate, useCustomSessionTimes, sessionStartTime, sessionEndTime, numberOfVolumeBars, barThickness, profileWidth, volumeType, barOpacity, displayPoC, poCLineThickness, poCLineStyle, poCLineOpacity, extendPoCLine, displayValueArea, valueAreaPercentage, displayValueAreaLines, valueAreaLinesThickness, valueAreaLineStyle, valueAreaLinesOpacity, extendValueAreaLines, enableDebugPrints, displayPreviousDayPOC, pdPOCLineStyle, pdPOCThickness, pdPOCOpacity, displayPreviousDayVAH, pdVAHLineStyle, pdVAHThickness, pdVAHOpacity, displayPreviousDayVAL, pdVALLineStyle, pdVALThickness, pdVALOpacity, displayPreviousDayHigh, pdHighLineStyle, pdHighThickness, pdHighOpacity, displayPreviousDayLow, pdLowLineStyle, pdLowThickness, pdLowOpacity, displayPreviousWeekPOC, pwPOCLineStyle, pwPOCThickness, pwPOCOpacity, displayPreviousWeekVAH, pwVAHLineStyle, pwVAHThickness, pwVAHOpacity, displayPreviousWeekVAL, pwVALLineStyle, pwVALThickness, pwVALOpacity, displayPreviousWeekHigh, pwHighLineStyle, pwHighThickness, pwHighOpacity, displayPreviousWeekLow, pwLowLineStyle, pwLowThickness, pwLowOpacity, displayOvernightPOC, overnightPOCLineStyle, overnightPOCThickness, overnightPOCOpacity, displayOvernightVAH, overnightVAHLineStyle, overnightVAHThickness, overnightVAHOpacity, displayOvernightVAL, overnightVALLineStyle, overnightVALThickness, overnightVALOpacity, displayOvernightHigh, overnightHighLineStyle, overnightHighThickness, overnightHighOpacity, displayOvernightLow, overnightLowLineStyle, overnightLowThickness, overnightLowOpacity, overnightStartTime, overnightEndTime, nakedPOCLineStyle, nakedPOCThickness, nakedPOCOpacity, nakedVAHLineStyle, nakedVAHThickness, nakedVAHOpacity, nakedVALLineStyle, nakedVALThickness, nakedVALOpacity, weeklyNakedPOCLineStyle, weeklyNakedPOCThickness, weeklyNakedPOCOpacity, weeklyNakedVAHLineStyle, weeklyNakedVAHThickness, weeklyNakedVAHOpacity, weeklyNakedVALLineStyle, weeklyNakedVALThickness, weeklyNakedVALOpacity, displayNakedLevels, maxNakedLevelsToDisplay, displayWeeklyNakedLevels, maxWeeklyNakedLevelsToDisplay, keepFilledLevelsAfterSession, removeAfterTouchCount, keepFilledWeeklyLevelsAfterWeek, removeWeeklyAfterTouchCount, showTouchCountInLabels, britishDateFormat, previousDayLineWidth, showPriceValuesInLabels, labelFontSize, enableDualProfileMode, weeklyProfileWidth, sessionProfileWidth, profileGap, useCustomDailySessionTimes, dailySessionStartTime, dailySessionEndTime, sessionProfileStyle, sessionOutlineSmoothness, weeklyNumberOfVolumeBars, weeklyBarThickness, weeklyVolumeType, weeklyBarOpacity, weeklyDisplayPoC, weeklyPoCLineThickness, weeklyPoCLineOpacity, weeklyDisplayValueArea, weeklyValueAreaPercentage, weeklyDisplayValueAreaLines, weeklyValueAreaLinesThickness, weeklyValueAreaLinesOpacity, weeklyExtendPoCLine, weeklyExtendValueAreaLines, sessionNumberOfVolumeBars, sessionBarThickness, sessionVolumeType, sessionBarOpacity, sessionDisplayPoC, sessionPoCLineThickness, sessionPoCLineOpacity, sessionDisplayValueArea, sessionValueAreaPercentage, sessionDisplayValueAreaLines, sessionValueAreaLinesThickness, sessionValueAreaLinesOpacity, sessionExtendPoCLine, sessionExtendValueAreaLines, enableGradientFill, gradientIntensity, displayLVN, lVNNumberOfRows, lVNDetectionPercent, showAdjacentLVNNodes, lVNFillOpacity, lVNBorderOpacity, enableDomdicator, domdicatorWidth, domdicatorGap, domMaxRightExtension, showDOMVolumeText, domMaxTextSize, domMinTextSize, domHistoricalOpacity, showHistoricalOrders, liveOrderTickThreshold, domLiveOpacity, minimumOrdersToStart, enableAlerts, alertDistanceTicks, alertOnPreviousDayLevels, alertOnPreviousWeekLevels, alertOnNakedLevels, alertOnWeeklyNakedLevels, alertOnOvernightLevels, playAlertSound, alertSoundFile, rearmAlertsOnNewSession, enableMoveProfiles, consolidationBars, breakoutThresholdTicks, minimumMoveSizeTicks, maxMovesToDisplay, moveProfileOpacity, movePOCLineStyle, movePOCThickness, moveVALineStyle, moveVAThickness, moveNumberOfVolumeBars, moveValueAreaPercentage, moveVALinesOpacity, enableCandleProfiles, candleProfileWidth, candleProfileOpacity, candleProfileVolumeType, candleProfileShowPOC, candleProfileShowVA, candleProfileVAPercent, candleProfileShowVALines, candleVALinesThickness, candleVALinesOpacity, pdUseIndividualStyles, pdSharedLineStyle, pdSharedThickness, pdSharedOpacity, pwUseIndividualStyles, pwSharedLineStyle, pwSharedThickness, pwSharedOpacity, onUseIndividualStyles, onSharedLineStyle, onSharedThickness, onSharedOpacity);
 		}
 
-		public Indicators.RedTailVolumeProfile_V2 RedTailVolumeProfile_V2(ISeries<double> input , ProfileModeEnum profileMode, ProfileAlignment alignment, int weeksLookback, int sessionsLookback, int monthsLookback, CompositeDateRangeType compositeRangeType, int compositeDaysBack, int compositeWeeksBack, int compositeMonthsBack, DateTime compositeCustomStartDate, DateTime compositeCustomEndDate, bool useCustomSessionTimes, int sessionStartTime, int sessionEndTime, int numberOfVolumeBars, int barThickness, int profileWidth, VolumeTypeEnum volumeType, int barOpacity, bool displayPoC, int poCLineThickness, DashStyleHelper poCLineStyle, int poCLineOpacity, bool extendPoCLine, bool displayValueArea, int valueAreaPercentage, bool displayValueAreaLines, int valueAreaLinesThickness, DashStyleHelper valueAreaLineStyle, int valueAreaLinesOpacity, bool extendValueAreaLines, bool enableDebugPrints, bool displayPreviousDayPOC, DashStyleHelper pdPOCLineStyle, int pdPOCThickness, int pdPOCOpacity, bool displayPreviousDayVAH, DashStyleHelper pdVAHLineStyle, int pdVAHThickness, int pdVAHOpacity, bool displayPreviousDayVAL, DashStyleHelper pdVALLineStyle, int pdVALThickness, int pdVALOpacity, bool displayPreviousDayHigh, DashStyleHelper pdHighLineStyle, int pdHighThickness, int pdHighOpacity, bool displayPreviousDayLow, DashStyleHelper pdLowLineStyle, int pdLowThickness, int pdLowOpacity, bool displayPreviousWeekPOC, DashStyleHelper pwPOCLineStyle, int pwPOCThickness, int pwPOCOpacity, bool displayPreviousWeekVAH, DashStyleHelper pwVAHLineStyle, int pwVAHThickness, int pwVAHOpacity, bool displayPreviousWeekVAL, DashStyleHelper pwVALLineStyle, int pwVALThickness, int pwVALOpacity, bool displayPreviousWeekHigh, DashStyleHelper pwHighLineStyle, int pwHighThickness, int pwHighOpacity, bool displayPreviousWeekLow, DashStyleHelper pwLowLineStyle, int pwLowThickness, int pwLowOpacity, bool displayOvernightPOC, DashStyleHelper overnightPOCLineStyle, int overnightPOCThickness, int overnightPOCOpacity, bool displayOvernightVAH, DashStyleHelper overnightVAHLineStyle, int overnightVAHThickness, int overnightVAHOpacity, bool displayOvernightVAL, DashStyleHelper overnightVALLineStyle, int overnightVALThickness, int overnightVALOpacity, bool displayOvernightHigh, DashStyleHelper overnightHighLineStyle, int overnightHighThickness, int overnightHighOpacity, bool displayOvernightLow, DashStyleHelper overnightLowLineStyle, int overnightLowThickness, int overnightLowOpacity, int overnightStartTime, int overnightEndTime, DashStyleHelper nakedPOCLineStyle, int nakedPOCThickness, int nakedPOCOpacity, DashStyleHelper nakedVAHLineStyle, int nakedVAHThickness, int nakedVAHOpacity, DashStyleHelper nakedVALLineStyle, int nakedVALThickness, int nakedVALOpacity, DashStyleHelper weeklyNakedPOCLineStyle, int weeklyNakedPOCThickness, int weeklyNakedPOCOpacity, DashStyleHelper weeklyNakedVAHLineStyle, int weeklyNakedVAHThickness, int weeklyNakedVAHOpacity, DashStyleHelper weeklyNakedVALLineStyle, int weeklyNakedVALThickness, int weeklyNakedVALOpacity, bool displayNakedLevels, int maxNakedLevelsToDisplay, bool displayWeeklyNakedLevels, int maxWeeklyNakedLevelsToDisplay, bool keepFilledLevelsAfterSession, int removeAfterTouchCount, bool keepFilledWeeklyLevelsAfterWeek, int removeWeeklyAfterTouchCount, bool showTouchCountInLabels, bool britishDateFormat, int previousDayLineWidth, bool showPriceValuesInLabels, int labelFontSize, bool enableDualProfileMode, int weeklyProfileWidth, int sessionProfileWidth, int profileGap, bool useCustomDailySessionTimes, int dailySessionStartTime, int dailySessionEndTime, SessionProfileStyleEnum sessionProfileStyle, int sessionOutlineSmoothness, int weeklyNumberOfVolumeBars, int weeklyBarThickness, VolumeTypeEnum weeklyVolumeType, int weeklyBarOpacity, bool weeklyDisplayPoC, int weeklyPoCLineThickness, int weeklyPoCLineOpacity, bool weeklyDisplayValueArea, int weeklyValueAreaPercentage, bool weeklyDisplayValueAreaLines, int weeklyValueAreaLinesThickness, int weeklyValueAreaLinesOpacity, bool weeklyExtendPoCLine, bool weeklyExtendValueAreaLines, int sessionNumberOfVolumeBars, int sessionBarThickness, VolumeTypeEnum sessionVolumeType, int sessionBarOpacity, bool sessionDisplayPoC, int sessionPoCLineThickness, int sessionPoCLineOpacity, bool sessionDisplayValueArea, int sessionValueAreaPercentage, bool sessionDisplayValueAreaLines, int sessionValueAreaLinesThickness, int sessionValueAreaLinesOpacity, bool sessionExtendPoCLine, bool sessionExtendValueAreaLines, bool enableGradientFill, int gradientIntensity, bool displayLVN, int lVNNumberOfRows, int lVNDetectionPercent, bool showAdjacentLVNNodes, int lVNFillOpacity, int lVNBorderOpacity, bool enableDomdicator, int domdicatorWidth, int domdicatorGap, int domMaxRightExtension, bool showDOMVolumeText, float domMaxTextSize, float domMinTextSize, float domHistoricalOpacity, bool showHistoricalOrders, int liveOrderTickThreshold, float domLiveOpacity, int minimumOrdersToStart, bool enableAlerts, int alertDistanceTicks, bool alertOnPreviousDayLevels, bool alertOnPreviousWeekLevels, bool alertOnNakedLevels, bool alertOnWeeklyNakedLevels, bool alertOnOvernightLevels, bool playAlertSound, string alertSoundFile, bool rearmAlertsOnNewSession, bool enableMoveProfiles, int consolidationBars, int breakoutThresholdTicks, int minimumMoveSizeTicks, int maxMovesToDisplay, int moveProfileOpacity, DashStyleHelper movePOCLineStyle, int movePOCThickness, DashStyleHelper moveVALineStyle, int moveVAThickness, int moveNumberOfVolumeBars, int moveValueAreaPercentage, int moveVALinesOpacity, bool enableCandleProfiles, int candleProfileWidth, int candleProfileOpacity, VolumeTypeEnum candleProfileVolumeType, bool candleProfileShowPOC, bool candleProfileShowVA, int candleProfileVAPercent, bool candleProfileShowVALines, int candleVALinesThickness, int candleVALinesOpacity)
+		public Indicators.RedTail.RedTailVolumeProfile RedTailVolumeProfile(ISeries<double> input , ProfileModeEnum profileMode, ProfileAlignment alignment, int weeksLookback, int sessionsLookback, int monthsLookback, CompositeDateRangeType compositeRangeType, int compositeDaysBack, int compositeWeeksBack, int compositeMonthsBack, DateTime compositeCustomStartDate, DateTime compositeCustomEndDate, bool useCustomSessionTimes, int sessionStartTime, int sessionEndTime, int numberOfVolumeBars, int barThickness, int profileWidth, VolumeTypeEnum volumeType, int barOpacity, bool displayPoC, int poCLineThickness, DashStyleHelper poCLineStyle, int poCLineOpacity, bool extendPoCLine, bool displayValueArea, int valueAreaPercentage, bool displayValueAreaLines, int valueAreaLinesThickness, DashStyleHelper valueAreaLineStyle, int valueAreaLinesOpacity, bool extendValueAreaLines, bool enableDebugPrints, bool displayPreviousDayPOC, DashStyleHelper pdPOCLineStyle, int pdPOCThickness, int pdPOCOpacity, bool displayPreviousDayVAH, DashStyleHelper pdVAHLineStyle, int pdVAHThickness, int pdVAHOpacity, bool displayPreviousDayVAL, DashStyleHelper pdVALLineStyle, int pdVALThickness, int pdVALOpacity, bool displayPreviousDayHigh, DashStyleHelper pdHighLineStyle, int pdHighThickness, int pdHighOpacity, bool displayPreviousDayLow, DashStyleHelper pdLowLineStyle, int pdLowThickness, int pdLowOpacity, bool displayPreviousWeekPOC, DashStyleHelper pwPOCLineStyle, int pwPOCThickness, int pwPOCOpacity, bool displayPreviousWeekVAH, DashStyleHelper pwVAHLineStyle, int pwVAHThickness, int pwVAHOpacity, bool displayPreviousWeekVAL, DashStyleHelper pwVALLineStyle, int pwVALThickness, int pwVALOpacity, bool displayPreviousWeekHigh, DashStyleHelper pwHighLineStyle, int pwHighThickness, int pwHighOpacity, bool displayPreviousWeekLow, DashStyleHelper pwLowLineStyle, int pwLowThickness, int pwLowOpacity, bool displayOvernightPOC, DashStyleHelper overnightPOCLineStyle, int overnightPOCThickness, int overnightPOCOpacity, bool displayOvernightVAH, DashStyleHelper overnightVAHLineStyle, int overnightVAHThickness, int overnightVAHOpacity, bool displayOvernightVAL, DashStyleHelper overnightVALLineStyle, int overnightVALThickness, int overnightVALOpacity, bool displayOvernightHigh, DashStyleHelper overnightHighLineStyle, int overnightHighThickness, int overnightHighOpacity, bool displayOvernightLow, DashStyleHelper overnightLowLineStyle, int overnightLowThickness, int overnightLowOpacity, int overnightStartTime, int overnightEndTime, DashStyleHelper nakedPOCLineStyle, int nakedPOCThickness, int nakedPOCOpacity, DashStyleHelper nakedVAHLineStyle, int nakedVAHThickness, int nakedVAHOpacity, DashStyleHelper nakedVALLineStyle, int nakedVALThickness, int nakedVALOpacity, DashStyleHelper weeklyNakedPOCLineStyle, int weeklyNakedPOCThickness, int weeklyNakedPOCOpacity, DashStyleHelper weeklyNakedVAHLineStyle, int weeklyNakedVAHThickness, int weeklyNakedVAHOpacity, DashStyleHelper weeklyNakedVALLineStyle, int weeklyNakedVALThickness, int weeklyNakedVALOpacity, bool displayNakedLevels, int maxNakedLevelsToDisplay, bool displayWeeklyNakedLevels, int maxWeeklyNakedLevelsToDisplay, bool keepFilledLevelsAfterSession, int removeAfterTouchCount, bool keepFilledWeeklyLevelsAfterWeek, int removeWeeklyAfterTouchCount, bool showTouchCountInLabels, bool britishDateFormat, int previousDayLineWidth, bool showPriceValuesInLabels, int labelFontSize, bool enableDualProfileMode, int weeklyProfileWidth, int sessionProfileWidth, int profileGap, bool useCustomDailySessionTimes, int dailySessionStartTime, int dailySessionEndTime, SessionProfileStyleEnum sessionProfileStyle, int sessionOutlineSmoothness, int weeklyNumberOfVolumeBars, int weeklyBarThickness, VolumeTypeEnum weeklyVolumeType, int weeklyBarOpacity, bool weeklyDisplayPoC, int weeklyPoCLineThickness, int weeklyPoCLineOpacity, bool weeklyDisplayValueArea, int weeklyValueAreaPercentage, bool weeklyDisplayValueAreaLines, int weeklyValueAreaLinesThickness, int weeklyValueAreaLinesOpacity, bool weeklyExtendPoCLine, bool weeklyExtendValueAreaLines, int sessionNumberOfVolumeBars, int sessionBarThickness, VolumeTypeEnum sessionVolumeType, int sessionBarOpacity, bool sessionDisplayPoC, int sessionPoCLineThickness, int sessionPoCLineOpacity, bool sessionDisplayValueArea, int sessionValueAreaPercentage, bool sessionDisplayValueAreaLines, int sessionValueAreaLinesThickness, int sessionValueAreaLinesOpacity, bool sessionExtendPoCLine, bool sessionExtendValueAreaLines, bool enableGradientFill, int gradientIntensity, bool displayLVN, int lVNNumberOfRows, int lVNDetectionPercent, bool showAdjacentLVNNodes, int lVNFillOpacity, int lVNBorderOpacity, bool enableDomdicator, int domdicatorWidth, int domdicatorGap, int domMaxRightExtension, bool showDOMVolumeText, float domMaxTextSize, float domMinTextSize, float domHistoricalOpacity, bool showHistoricalOrders, int liveOrderTickThreshold, float domLiveOpacity, int minimumOrdersToStart, bool enableAlerts, int alertDistanceTicks, bool alertOnPreviousDayLevels, bool alertOnPreviousWeekLevels, bool alertOnNakedLevels, bool alertOnWeeklyNakedLevels, bool alertOnOvernightLevels, bool playAlertSound, string alertSoundFile, bool rearmAlertsOnNewSession, bool enableMoveProfiles, int consolidationBars, int breakoutThresholdTicks, int minimumMoveSizeTicks, int maxMovesToDisplay, int moveProfileOpacity, DashStyleHelper movePOCLineStyle, int movePOCThickness, DashStyleHelper moveVALineStyle, int moveVAThickness, int moveNumberOfVolumeBars, int moveValueAreaPercentage, int moveVALinesOpacity, bool enableCandleProfiles, int candleProfileWidth, int candleProfileOpacity, VolumeTypeEnum candleProfileVolumeType, bool candleProfileShowPOC, bool candleProfileShowVA, int candleProfileVAPercent, bool candleProfileShowVALines, int candleVALinesThickness, int candleVALinesOpacity, bool pdUseIndividualStyles, DashStyleHelper pdSharedLineStyle, int pdSharedThickness, int pdSharedOpacity, bool pwUseIndividualStyles, DashStyleHelper pwSharedLineStyle, int pwSharedThickness, int pwSharedOpacity, bool onUseIndividualStyles, DashStyleHelper onSharedLineStyle, int onSharedThickness, int onSharedOpacity)
 		{
-			return indicator.RedTailVolumeProfile_V2(input, profileMode, alignment, weeksLookback, sessionsLookback, monthsLookback, compositeRangeType, compositeDaysBack, compositeWeeksBack, compositeMonthsBack, compositeCustomStartDate, compositeCustomEndDate, useCustomSessionTimes, sessionStartTime, sessionEndTime, numberOfVolumeBars, barThickness, profileWidth, volumeType, barOpacity, displayPoC, poCLineThickness, poCLineStyle, poCLineOpacity, extendPoCLine, displayValueArea, valueAreaPercentage, displayValueAreaLines, valueAreaLinesThickness, valueAreaLineStyle, valueAreaLinesOpacity, extendValueAreaLines, enableDebugPrints, displayPreviousDayPOC, pdPOCLineStyle, pdPOCThickness, pdPOCOpacity, displayPreviousDayVAH, pdVAHLineStyle, pdVAHThickness, pdVAHOpacity, displayPreviousDayVAL, pdVALLineStyle, pdVALThickness, pdVALOpacity, displayPreviousDayHigh, pdHighLineStyle, pdHighThickness, pdHighOpacity, displayPreviousDayLow, pdLowLineStyle, pdLowThickness, pdLowOpacity, displayPreviousWeekPOC, pwPOCLineStyle, pwPOCThickness, pwPOCOpacity, displayPreviousWeekVAH, pwVAHLineStyle, pwVAHThickness, pwVAHOpacity, displayPreviousWeekVAL, pwVALLineStyle, pwVALThickness, pwVALOpacity, displayPreviousWeekHigh, pwHighLineStyle, pwHighThickness, pwHighOpacity, displayPreviousWeekLow, pwLowLineStyle, pwLowThickness, pwLowOpacity, displayOvernightPOC, overnightPOCLineStyle, overnightPOCThickness, overnightPOCOpacity, displayOvernightVAH, overnightVAHLineStyle, overnightVAHThickness, overnightVAHOpacity, displayOvernightVAL, overnightVALLineStyle, overnightVALThickness, overnightVALOpacity, displayOvernightHigh, overnightHighLineStyle, overnightHighThickness, overnightHighOpacity, displayOvernightLow, overnightLowLineStyle, overnightLowThickness, overnightLowOpacity, overnightStartTime, overnightEndTime, nakedPOCLineStyle, nakedPOCThickness, nakedPOCOpacity, nakedVAHLineStyle, nakedVAHThickness, nakedVAHOpacity, nakedVALLineStyle, nakedVALThickness, nakedVALOpacity, weeklyNakedPOCLineStyle, weeklyNakedPOCThickness, weeklyNakedPOCOpacity, weeklyNakedVAHLineStyle, weeklyNakedVAHThickness, weeklyNakedVAHOpacity, weeklyNakedVALLineStyle, weeklyNakedVALThickness, weeklyNakedVALOpacity, displayNakedLevels, maxNakedLevelsToDisplay, displayWeeklyNakedLevels, maxWeeklyNakedLevelsToDisplay, keepFilledLevelsAfterSession, removeAfterTouchCount, keepFilledWeeklyLevelsAfterWeek, removeWeeklyAfterTouchCount, showTouchCountInLabels, britishDateFormat, previousDayLineWidth, showPriceValuesInLabels, labelFontSize, enableDualProfileMode, weeklyProfileWidth, sessionProfileWidth, profileGap, useCustomDailySessionTimes, dailySessionStartTime, dailySessionEndTime, sessionProfileStyle, sessionOutlineSmoothness, weeklyNumberOfVolumeBars, weeklyBarThickness, weeklyVolumeType, weeklyBarOpacity, weeklyDisplayPoC, weeklyPoCLineThickness, weeklyPoCLineOpacity, weeklyDisplayValueArea, weeklyValueAreaPercentage, weeklyDisplayValueAreaLines, weeklyValueAreaLinesThickness, weeklyValueAreaLinesOpacity, weeklyExtendPoCLine, weeklyExtendValueAreaLines, sessionNumberOfVolumeBars, sessionBarThickness, sessionVolumeType, sessionBarOpacity, sessionDisplayPoC, sessionPoCLineThickness, sessionPoCLineOpacity, sessionDisplayValueArea, sessionValueAreaPercentage, sessionDisplayValueAreaLines, sessionValueAreaLinesThickness, sessionValueAreaLinesOpacity, sessionExtendPoCLine, sessionExtendValueAreaLines, enableGradientFill, gradientIntensity, displayLVN, lVNNumberOfRows, lVNDetectionPercent, showAdjacentLVNNodes, lVNFillOpacity, lVNBorderOpacity, enableDomdicator, domdicatorWidth, domdicatorGap, domMaxRightExtension, showDOMVolumeText, domMaxTextSize, domMinTextSize, domHistoricalOpacity, showHistoricalOrders, liveOrderTickThreshold, domLiveOpacity, minimumOrdersToStart, enableAlerts, alertDistanceTicks, alertOnPreviousDayLevels, alertOnPreviousWeekLevels, alertOnNakedLevels, alertOnWeeklyNakedLevels, alertOnOvernightLevels, playAlertSound, alertSoundFile, rearmAlertsOnNewSession, enableMoveProfiles, consolidationBars, breakoutThresholdTicks, minimumMoveSizeTicks, maxMovesToDisplay, moveProfileOpacity, movePOCLineStyle, movePOCThickness, moveVALineStyle, moveVAThickness, moveNumberOfVolumeBars, moveValueAreaPercentage, moveVALinesOpacity, enableCandleProfiles, candleProfileWidth, candleProfileOpacity, candleProfileVolumeType, candleProfileShowPOC, candleProfileShowVA, candleProfileVAPercent, candleProfileShowVALines, candleVALinesThickness, candleVALinesOpacity);
+			return indicator.RedTailVolumeProfile(input, profileMode, alignment, weeksLookback, sessionsLookback, monthsLookback, compositeRangeType, compositeDaysBack, compositeWeeksBack, compositeMonthsBack, compositeCustomStartDate, compositeCustomEndDate, useCustomSessionTimes, sessionStartTime, sessionEndTime, numberOfVolumeBars, barThickness, profileWidth, volumeType, barOpacity, displayPoC, poCLineThickness, poCLineStyle, poCLineOpacity, extendPoCLine, displayValueArea, valueAreaPercentage, displayValueAreaLines, valueAreaLinesThickness, valueAreaLineStyle, valueAreaLinesOpacity, extendValueAreaLines, enableDebugPrints, displayPreviousDayPOC, pdPOCLineStyle, pdPOCThickness, pdPOCOpacity, displayPreviousDayVAH, pdVAHLineStyle, pdVAHThickness, pdVAHOpacity, displayPreviousDayVAL, pdVALLineStyle, pdVALThickness, pdVALOpacity, displayPreviousDayHigh, pdHighLineStyle, pdHighThickness, pdHighOpacity, displayPreviousDayLow, pdLowLineStyle, pdLowThickness, pdLowOpacity, displayPreviousWeekPOC, pwPOCLineStyle, pwPOCThickness, pwPOCOpacity, displayPreviousWeekVAH, pwVAHLineStyle, pwVAHThickness, pwVAHOpacity, displayPreviousWeekVAL, pwVALLineStyle, pwVALThickness, pwVALOpacity, displayPreviousWeekHigh, pwHighLineStyle, pwHighThickness, pwHighOpacity, displayPreviousWeekLow, pwLowLineStyle, pwLowThickness, pwLowOpacity, displayOvernightPOC, overnightPOCLineStyle, overnightPOCThickness, overnightPOCOpacity, displayOvernightVAH, overnightVAHLineStyle, overnightVAHThickness, overnightVAHOpacity, displayOvernightVAL, overnightVALLineStyle, overnightVALThickness, overnightVALOpacity, displayOvernightHigh, overnightHighLineStyle, overnightHighThickness, overnightHighOpacity, displayOvernightLow, overnightLowLineStyle, overnightLowThickness, overnightLowOpacity, overnightStartTime, overnightEndTime, nakedPOCLineStyle, nakedPOCThickness, nakedPOCOpacity, nakedVAHLineStyle, nakedVAHThickness, nakedVAHOpacity, nakedVALLineStyle, nakedVALThickness, nakedVALOpacity, weeklyNakedPOCLineStyle, weeklyNakedPOCThickness, weeklyNakedPOCOpacity, weeklyNakedVAHLineStyle, weeklyNakedVAHThickness, weeklyNakedVAHOpacity, weeklyNakedVALLineStyle, weeklyNakedVALThickness, weeklyNakedVALOpacity, displayNakedLevels, maxNakedLevelsToDisplay, displayWeeklyNakedLevels, maxWeeklyNakedLevelsToDisplay, keepFilledLevelsAfterSession, removeAfterTouchCount, keepFilledWeeklyLevelsAfterWeek, removeWeeklyAfterTouchCount, showTouchCountInLabels, britishDateFormat, previousDayLineWidth, showPriceValuesInLabels, labelFontSize, enableDualProfileMode, weeklyProfileWidth, sessionProfileWidth, profileGap, useCustomDailySessionTimes, dailySessionStartTime, dailySessionEndTime, sessionProfileStyle, sessionOutlineSmoothness, weeklyNumberOfVolumeBars, weeklyBarThickness, weeklyVolumeType, weeklyBarOpacity, weeklyDisplayPoC, weeklyPoCLineThickness, weeklyPoCLineOpacity, weeklyDisplayValueArea, weeklyValueAreaPercentage, weeklyDisplayValueAreaLines, weeklyValueAreaLinesThickness, weeklyValueAreaLinesOpacity, weeklyExtendPoCLine, weeklyExtendValueAreaLines, sessionNumberOfVolumeBars, sessionBarThickness, sessionVolumeType, sessionBarOpacity, sessionDisplayPoC, sessionPoCLineThickness, sessionPoCLineOpacity, sessionDisplayValueArea, sessionValueAreaPercentage, sessionDisplayValueAreaLines, sessionValueAreaLinesThickness, sessionValueAreaLinesOpacity, sessionExtendPoCLine, sessionExtendValueAreaLines, enableGradientFill, gradientIntensity, displayLVN, lVNNumberOfRows, lVNDetectionPercent, showAdjacentLVNNodes, lVNFillOpacity, lVNBorderOpacity, enableDomdicator, domdicatorWidth, domdicatorGap, domMaxRightExtension, showDOMVolumeText, domMaxTextSize, domMinTextSize, domHistoricalOpacity, showHistoricalOrders, liveOrderTickThreshold, domLiveOpacity, minimumOrdersToStart, enableAlerts, alertDistanceTicks, alertOnPreviousDayLevels, alertOnPreviousWeekLevels, alertOnNakedLevels, alertOnWeeklyNakedLevels, alertOnOvernightLevels, playAlertSound, alertSoundFile, rearmAlertsOnNewSession, enableMoveProfiles, consolidationBars, breakoutThresholdTicks, minimumMoveSizeTicks, maxMovesToDisplay, moveProfileOpacity, movePOCLineStyle, movePOCThickness, moveVALineStyle, moveVAThickness, moveNumberOfVolumeBars, moveValueAreaPercentage, moveVALinesOpacity, enableCandleProfiles, candleProfileWidth, candleProfileOpacity, candleProfileVolumeType, candleProfileShowPOC, candleProfileShowVA, candleProfileVAPercent, candleProfileShowVALines, candleVALinesThickness, candleVALinesOpacity, pdUseIndividualStyles, pdSharedLineStyle, pdSharedThickness, pdSharedOpacity, pwUseIndividualStyles, pwSharedLineStyle, pwSharedThickness, pwSharedOpacity, onUseIndividualStyles, onSharedLineStyle, onSharedThickness, onSharedOpacity);
 		}
 	}
 }
