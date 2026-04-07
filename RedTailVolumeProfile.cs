@@ -92,6 +92,23 @@ public bool IsProfileCalculated
     get { return volumes != null && volumes.Count > 0 && maxIndexForRender >= 0; }
 }
 
+/// <summary>
+/// Returns the current VAH, POC, and VAL from the live volume profile render state.
+/// Called by RedTailMarketStructure to filter order blocks by value area.
+/// Works regardless of profile mode (Session, Weekly, Composite, etc.).
+/// Returns false if the profile has not calculated yet.
+/// </summary>
+public bool GetCurrentVALevels(out double vah, out double poc, out double val)
+{
+    vah = 0; poc = 0; val = 0;
+    if (!IsProfileCalculated) return false;
+    if (priceInterval <= 0) return false;
+    poc = lowestPrice + priceInterval * maxIndexForRender;
+    vah = lowestPrice + priceInterval * vaUpForRender;
+    val = lowestPrice + priceInterval * vaDownForRender;
+    return true;
+}
+
 [Browsable(false)]
 [XmlIgnore]
 public Series<double> CurrentPOCPlot
